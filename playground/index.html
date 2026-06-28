@@ -4,26 +4,174 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Reservation Playground</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; grid-column: 1 / -1; }
-        h2 { font-size: 1.2rem; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.9rem; }
-        input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { margin-top: 15px; padding: 10px; width: 100%; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0056b3; }
-        .success { background: #28a745; }
-        .success:hover { background: #218838; }
-        .danger { background: #dc3545; }
-        .danger:hover { background: #c82333; }
-        .warning { background: #ffc107; color: black; }
-        .warning:hover { background: #e0a800; }
-        .log-area { grid-column: 1 / -1; background: #222; color: #0f0; padding: 15px; border-radius: 8px; height: 200px; overflow-y: auto; font-family: monospace; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8f9fa;
+            --text-muted: #adb5bd;
+            --accent-primary: #3b82f6;
+            --accent-primary-hover: #2563eb;
+            --accent-success: #10b981;
+            --accent-success-hover: #059669;
+            --accent-danger: #ef4444;
+            --accent-danger-hover: #dc2626;
+            --accent-warning: #f59e0b;
+            --accent-warning-hover: #d97706;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            padding: 40px 20px; 
+            background: var(--bg-color);
+            background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.15), transparent 40%);
+            color: var(--text-main); 
+            min-height: 100vh;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 25px; 
+        }
+        .card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 16px; 
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        h1 { 
+            text-align: center; 
+            grid-column: 1 / -1; 
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        h2 { 
+            font-size: 1.25rem; 
+            font-weight: 600;
+            margin-top: 0; 
+            border-bottom: 1px solid var(--card-border); 
+            padding-bottom: 15px; 
+            color: var(--text-main);
+        }
+        label { 
+            display: block; 
+            margin-top: 15px; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 6px; 
+            box-sizing: border-box; 
+            border: 1px solid var(--card-border); 
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        input::placeholder { color: rgba(255,255,255,0.3); }
+        input[readonly] { background: rgba(0,0,0,0.4); cursor: not-allowed; }
+        
+        button { 
+            margin-top: 20px; 
+            padding: 12px 20px; 
+            width: 100%; 
+            background: var(--accent-primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        button:hover { 
+            background: var(--accent-primary-hover); 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
+        }
+        button:active { transform: translateY(0); }
+        
+        .success { background: var(--accent-success); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .success:hover { background: var(--accent-success-hover); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4); }
+        .danger { background: var(--accent-danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        .danger:hover { background: var(--accent-danger-hover); box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4); }
+        .warning { background: var(--accent-warning); color: #fff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+        .warning:hover { background: var(--accent-warning-hover); box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4); }
+        
+        .log-area { 
+            grid-column: 1 / -1; 
+            background: #000; 
+            color: #34d399; 
+            padding: 20px; 
+            border-radius: 12px; 
+            height: 250px; 
+            overflow-y: auto; 
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            border: 1px solid var(--card-border);
+            line-height: 1.5;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.5);
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0;
+            margin-top: 15px; 
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+        th, td { 
+            padding: 12px 15px; 
+            text-align: left; 
+            border-bottom: 1px solid var(--card-border);
+        }
+        th { 
+            background-color: rgba(255,255,255,0.05); 
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background-color: rgba(255,255,255,0.02); }
+        
+        hr { border: 0; border-top: 1px solid var(--card-border); margin: 25px 0; }
     </style>
 </head>
 <body>
