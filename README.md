@@ -1,6 +1,6 @@
 # Location-Based Inventory Reservation Service
 
-> **Live API URL:** `[INSERT YOUR RENDER URL HERE]`
+> **Live API URL:** `https://inventory-reservation-service.onrender.com`
 
 ## 📖 Project Overview
 This repository contains a production-quality backend service built with **NestJS, TypeScript, TypeORM, and PostgreSQL**. It is designed to handle multi-location inventory reservations with a strict focus on data integrity, concurrency, and idempotency.
