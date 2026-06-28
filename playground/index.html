@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Reservation Playground</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background: #f4f4f9; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; grid-column: 1 / -1; }
+        h2 { font-size: 1.2rem; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.9rem; }
+        input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { margin-top: 15px; padding: 10px; width: 100%; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .success { background: #28a745; }
+        .success:hover { background: #218838; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #c82333; }
+        .warning { background: #ffc107; color: black; }
+        .warning:hover { background: #e0a800; }
+        .log-area { grid-column: 1 / -1; background: #222; color: #0f0; padding: 15px; border-radius: 8px; height: 200px; overflow-y: auto; font-family: monospace; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Inventory Reservation Playground</h1>
+
+        <!-- Setup Data -->
+        <div class="card">
+            <h2>1. Setup Data</h2>
+            <label>Product ID</label>
+            <input type="text" id="productId" placeholder="Product UUID (leave blank to create)" />
+            <button onclick="createProduct()">Create Random Product</button>
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
+            
+            <label>Location ID</label>
+            <input type="text" id="locationId" placeholder="Location UUID (leave blank to create)" />
+            <label>Service Pincode</label>
+            <input type="text" id="servicePincodes" value="10001, 10002" />
+            <button onclick="createLocation()">Create Location</button>
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
+
+            <label>Stock to Add</label>
+            <input type="number" id="stockToAdd" value="10" />
+            <button onclick="addInventory()">Add Inventory</button>
+        </div>
+
+        <!-- Checkout -->
+        <div class="card">
+            <h2>2. Checkout Flow</h2>
+            <label>Quantity</label>
+            <input type="number" id="checkoutQty" value="2" />
+            <label>Delivery Pincode</label>
+            <input type="text" id="checkoutPincode" value="10001" />
+            <label>Idempotency Key</label>
+            <input type="text" id="idempotencyKey" placeholder="Generate a unique key" />
+            <button onclick="generateIdempotencyKey()" style="background: #6c757d; margin-top: 5px;">Generate Random Key</button>
+            <button onclick="startCheckout()" class="success">Start Checkout (Reserve)</button>
+
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
+            <label>Active Checkout ID</label>
+            <input type="text" id="checkoutId" readonly />
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="markPayment('success')" class="success">Payment Success</button>
+                <button onclick="markPayment('failed')" class="danger">Payment Failed</button>
+                <button onclick="markPayment('abandoned')" class="warning">Abandon Checkout</button>
+            </div>
+            
+            <button onclick="sweepExpired()" style="background: #17a2b8; margin-top: 10px;">Sweep Expired (Cron)</button>
+        </div>
+
+        <!-- Availability Dashboard -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>3. Product Availability Dashboard</h2>
+            <button onclick="fetchAvailability()">Refresh Availability</button>
+            <table id="availabilityTable">
+                <thead>
+                    <tr>
+                        <th>Location ID</th>
+                        <th>Location Name</th>
+                        <th>Physical Stock</th>
+                        <th>Reserved</th>
+                        <th>Available</th>
+                    </tr>
+                </thead>
+                <tbody id="availabilityBody">
+                    <tr><td colspan="5">No data. Click refresh.</td></tr>
+                </tbody>
+            </table>
+            <div style="margin-top: 10px;">
+                <strong>Total Available Stock Across Network: </strong> <span id="totalAvailable">0</span>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="log-area" id="logs">
+            [System Ready] Welcome to the playground! Start by creating a product and location.
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        const log = (msg) => {
+            const logs = document.getElementById('logs');
+            logs.innerHTML += `\n[${new Date().toISOString().split('T')[1].split('.')[0]}] ${msg}`;
+            logs.scrollTop = logs.scrollHeight;
+        };
+
+        generateIdempotencyKey();
+
+        function generateIdempotencyKey() {
+            document.getElementById('idempotencyKey').value = 'key-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        async function api(path, method = 'GET', body = null, headers = {}) {
+            try {
+                const options = { method, headers: { 'Content-Type': 'application/json', ...headers } };
+                if (body) options.body = JSON.stringify(body);
+                const res = await fetch(`${API_URL}${path}`, options);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+                return data;
+            } catch (err) {
+                log(`ERROR: ${err.message}`);
+                throw err;
+            }
+        }
+
+        async function createProduct() {
+            const sku = 'SKU-' + Math.floor(Math.random() * 10000);
+            const data = await api('/products', 'POST', { name: 'Demo Product', sku });
+            document.getElementById('productId').value = data.id;
+            log(`Created Product: ${data.id}`);
+        }
+
+        async function createLocation() {
+            const pincodes = document.getElementById('servicePincodes').value.split(',').map(s => s.trim());
+            const data = await api('/locations', 'POST', { 
+                name: 'Warehouse ' + Math.floor(Math.random() * 100), 
+                city: 'New York', state: 'NY', 
+                servicePincodes: pincodes, priority: 1 
+            });
+            document.getElementById('locationId').value = data.id;
+            log(`Created Location: ${data.id}`);
+        }
+
+        async function addInventory() {
+            const productId = document.getElementById('productId').value;
+            const locationId = document.getElementById('locationId').value;
+            const stock = parseInt(document.getElementById('stockToAdd').value, 10);
+            if(!productId || !locationId) return log('ERROR: Product ID and Location ID required');
+            await api('/inventory', 'POST', { productId, locationId, stock });
+            log(`Added ${stock} inventory to location ${locationId}`);
+            fetchAvailability();
+        }
+
+        async function startCheckout() {
+            const productId = document.getElementById('productId').value;
+            const quantity = parseInt(document.getElementById('checkoutQty').value, 10);
+            const deliveryPincode = document.getElementById('checkoutPincode').value;
+            const idempotencyKey = document.getElementById('idempotencyKey').value;
+            if(!productId) return log('ERROR: Product ID required');
+
+            const data = await api('/checkouts', 'POST', { productId, quantity, deliveryPincode }, { 'idempotency-key': idempotencyKey });
+            document.getElementById('checkoutId').value = data.id;
+            log(`Checkout Started: ID=${data.id}, Status=${data.status}, Reserved Location=${data.reservedLocationId}`);
+            fetchAvailability();
+        }
+
+        async function markPayment(status) {
+            const id = document.getElementById('checkoutId').value;
+            if(!id) return log('ERROR: No active checkout ID');
+            await api(`/checkouts/${id}/payment/${status}`, 'POST');
+            log(`Checkout ${id} marked as ${status.toUpperCase()}`);
+            fetchAvailability();
+        }
+
+        async function sweepExpired() {
+            const data = await api('/checkouts/expire', 'POST');
+            log(`Sweep Complete: ${data.message}`);
+            fetchAvailability();
+        }
+
+        async function fetchAvailability() {
+            const productId = document.getElementById('productId').value;
+            if(!productId) return;
+            const data = await api(`/products/${productId}/availability`);
+            document.getElementById('totalAvailable').innerText = data.totalAvailable;
+            
+            const tbody = document.getElementById('availabilityBody');
+            tbody.innerHTML = '';
+            if (data.locations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No inventory found for this product.</td></tr>';
+                return;
+            }
+            data.locations.forEach(loc => {
+                tbody.innerHTML += `<tr>
+                    <td>${loc.locationId}</td>
+                    <td>${loc.locationName}</td>
+                    <td>${loc.stock}</td>
+                    <td>${loc.reserved}</td>
+                    <td style="font-weight:bold; color: ${loc.available > 0 ? 'green' : 'red'}">${loc.available}</td>
+                </tr>`;
+            });
+        }
+    </script>
+</body>
+</html>
