@@ -181,6 +181,7 @@
         <!-- Setup Data -->
         <div class="card">
             <h2>1. Setup Data</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Simulate your database state by creating products, warehouses, and initial physical stock.</p>
             <label>Product ID</label>
             <input type="text" id="productId" placeholder="Product UUID (leave blank to create)" />
             <button onclick="createProduct()">Create Random Product</button>
@@ -201,11 +202,13 @@
         <!-- Checkout -->
         <div class="card">
             <h2>2. Checkout Flow</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Test the core logic: Reserve stock at the closest warehouse, then finalize the payment state.</p>
             <label>Quantity</label>
             <input type="number" id="checkoutQty" value="2" />
             <label>Delivery Pincode</label>
             <input type="text" id="checkoutPincode" value="10001" />
             <label>Idempotency Key</label>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 8px 0;">Demonstrates API resilience. Prevents duplicate checkouts if the network fails during a request.</p>
             <input type="text" id="idempotencyKey" placeholder="Generate a unique key" />
             <button onclick="generateIdempotencyKey()" style="background: #6c757d; margin-top: 5px;">Generate Random Key</button>
             <button onclick="startCheckout()" class="success">Start Checkout (Reserve)</button>
@@ -220,12 +223,14 @@
                 <button onclick="markPayment('abandoned')" class="warning">Abandon Checkout</button>
             </div>
             
-            <button onclick="sweepExpired()" style="background: #17a2b8; margin-top: 10px;">Sweep Expired (Cron)</button>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 20px 0 5px 0;">Simulates a background cron job that releases reserved stock for abandoned checkouts after 15 mins.</p>
+            <button onclick="sweepExpired()" style="background: #17a2b8; margin-top: 0px;">Sweep Expired Checkouts (Cron Job)</button>
         </div>
 
         <!-- Availability Dashboard -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2>3. Product Availability Dashboard</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Monitor real-time Physical Stock vs Reserved Stock to ensure we never oversell inventory.</p>
             <button onclick="fetchAvailability()">Refresh Availability</button>
             <table id="availabilityTable">
                 <thead>
