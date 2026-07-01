@@ -163,29 +163,6 @@
             position: relative;
         }
         
-        .flow-arrow {
-            position: absolute;
-            left: 45%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 120px;
-            height: 20px;
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-        
-        .flow-arrow svg {
-            width: 100%;
-            height: 100%;
-            stroke: var(--accent-primary);
-            stroke-width: 2;
-            stroke-dasharray: 6;
-            animation: dashFlow 1s linear infinite;
-        }
-
         /* Left: Storefront Mobile Frame */
         .mobile-wrapper {
             display: flex;
@@ -283,6 +260,16 @@
             font-family: 'Orbitron', sans-serif;
             font-size: 1.1rem;
             color: var(--accent-primary);
+            letter-spacing: 0.5px;
+        }
+
+        .control-room .section-header span {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: #ffffff;
+            background: var(--accent-primary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
             letter-spacing: 0.5px;
         }
 
@@ -687,15 +674,6 @@
     </nav>
 
     <div class="layout">
-        <!-- Flow Arrow -->
-        <div class="flow-arrow">
-            <div style="position:absolute; top: -15px; font-size: 0.7rem; color: var(--accent-primary); font-family: 'Orbitron', sans-serif; white-space: nowrap;">API Requests</div>
-            <svg viewBox="0 0 100 20" preserveAspectRatio="none">
-                <line x1="0" y1="10" x2="90" y2="10" />
-                <polygon points="90,5 100,10 90,15" fill="var(--accent-primary)" />
-            </svg>
-        </div>
-        
         <!-- Storefront (Left) -->
         <div class="mobile-wrapper">
             <div class="mobile-frame">
