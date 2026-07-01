@@ -182,6 +182,7 @@
         <div class="card">
             <h2>1. Setup Data</h2>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Simulate your database state by creating products, warehouses, and initial physical stock.</p>
+            
             <label>Product ID</label>
             <input type="text" id="productId" placeholder="Product UUID (leave blank to create)" />
             <button onclick="createProduct()">Create Random Product</button>
@@ -201,17 +202,33 @@
 
         <!-- Checkout -->
         <div class="card">
-            <h2>2. Checkout Flow</h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Test the core logic: Reserve stock at the closest warehouse, then finalize the payment state.</p>
-            <label>Quantity</label>
-            <input type="number" id="checkoutQty" value="2" />
+            <h2>2. Shopping Cart & Checkout</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Add multiple products to your cart, then reserve stock for all items atomically.</p>
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed var(--card-border); margin-bottom: 15px;">
+                <label style="margin-top: 0;">Product ID to Add</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="cartProductId" placeholder="Paste Product UUID" style="flex: 1;" />
+                    <button onclick="copyCurrentProduct()" style="background: #e2e8f0; color: #475569; width: auto; padding: 12px; margin-top: 6px; box-shadow: none;" title="Use the Product ID from Step 1">📋 Use Step 1 ID</button>
+                </div>
+                <label>Quantity</label>
+                <input type="number" id="cartQty" value="1" />
+                <button onclick="addToCart()" style="background: var(--accent-primary); margin-top: 15px;">Add to Cart</button>
+            </div>
+
+            <label>Your Cart</label>
+            <ul id="cartList" style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: 5px; min-height: 30px;">
+                <li style="color: var(--text-muted)">Cart is empty</li>
+            </ul>
+
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
             <label>Delivery Pincode</label>
             <input type="text" id="checkoutPincode" value="10001" />
             <label>Idempotency Key</label>
             <p style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 8px 0;">Demonstrates API resilience. Prevents duplicate checkouts if the network fails during a request.</p>
             <input type="text" id="idempotencyKey" placeholder="Generate a unique key" />
             <button onclick="generateIdempotencyKey()" style="background: #6c757d; margin-top: 5px;">Generate Random Key</button>
-            <button onclick="startCheckout()" class="success">Start Checkout (Reserve)</button>
+            <button onclick="startCheckout()" class="success">Start Checkout (Reserve Cart)</button>
 
             <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
             <label>Active Checkout ID</label>
@@ -231,7 +248,13 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2>3. Product Availability Dashboard</h2>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Monitor real-time Physical Stock vs Reserved Stock to ensure we never oversell inventory.</p>
-            <button onclick="fetchAvailability()">Refresh Availability</button>
+            
+            <label>Check Availability for Product ID:</label>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <input type="text" id="dashProductId" placeholder="Paste Product UUID" style="flex: 1;" />
+                <button onclick="fetchAvailability()" style="width: auto; margin: 0; padding: 12px 20px;">Refresh</button>
+            </div>
+
             <table id="availabilityTable">
                 <thead>
                     <tr>
@@ -243,7 +266,7 @@
                     </tr>
                 </thead>
                 <tbody id="availabilityBody">
-                    <tr><td colspan="5">No data. Click refresh.</td></tr>
+                    <tr><td colspan="5">No data. Enter a Product ID and click refresh.</td></tr>
                 </tbody>
             </table>
             <div style="margin-top: 10px;">
@@ -259,6 +282,8 @@
 
     <script>
         const API_URL = 'https://inventory-reservation-service.onrender.com';
+        let cart = [];
+
         const log = (msg) => {
             const logs = document.getElementById('logs');
             logs.innerHTML += `\n[${new Date().toISOString().split('T')[1].split('.')[0]}] ${msg}`;
@@ -289,7 +314,9 @@
             const sku = 'SKU-' + Math.floor(Math.random() * 10000);
             const data = await api('/products', 'POST', { name: 'Demo Product', sku });
             document.getElementById('productId').value = data.id;
+            document.getElementById('dashProductId').value = data.id;
             log(`Created Product: ${data.id}`);
+            fetchAvailability();
         }
 
         async function createLocation() {
@@ -313,16 +340,52 @@
             fetchAvailability();
         }
 
+        // Cart Logic
+        function copyCurrentProduct() {
+            const pid = document.getElementById('productId').value;
+            if (pid) document.getElementById('cartProductId').value = pid;
+        }
+
+        function addToCart() {
+            const productId = document.getElementById('cartProductId').value;
+            const quantity = parseInt(document.getElementById('cartQty').value, 10);
+            if (!productId) return log('ERROR: Product ID required for cart');
+            cart.push({ productId, quantity });
+            renderCart();
+            log(`Added ${quantity} of product ${productId} to cart`);
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            if (cart.length === 0) {
+                list.innerHTML = '<li style="color: var(--text-muted)">Cart is empty</li>';
+                return;
+            }
+            list.innerHTML = cart.map((item, index) => 
+                `<li style="padding: 10px; background: #fff; border: 1px solid var(--card-border); margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span><span style="font-weight: 600; color: var(--accent-primary);">${item.quantity}x</span> Product: ${item.productId.substring(0,8)}...</span>
+                    <button onclick="removeFromCart(${index})" style="background: transparent; color: var(--accent-danger); font-size: 1.2rem; font-weight: bold; padding: 0 5px; width: auto; margin: 0; box-shadow: none;">&times;</button>
+                </li>`
+            ).join('');
+        }
+
         async function startCheckout() {
-            const productId = document.getElementById('productId').value;
-            const quantity = parseInt(document.getElementById('checkoutQty').value, 10);
+            if(cart.length === 0) return log('ERROR: Cart is empty. Add items first.');
             const deliveryPincode = document.getElementById('checkoutPincode').value;
             const idempotencyKey = document.getElementById('idempotencyKey').value;
-            if(!productId) return log('ERROR: Product ID required');
 
-            const data = await api('/checkouts', 'POST', { productId, quantity, deliveryPincode }, { 'idempotency-key': idempotencyKey });
+            log('Starting multi-item checkout...');
+            const data = await api('/checkouts', 'POST', { items: cart, deliveryPincode }, { 'idempotency-key': idempotencyKey });
             document.getElementById('checkoutId').value = data.id;
-            log(`Checkout Started: ID=${data.id}, Status=${data.status}, Reserved Location=${data.reservedLocationId}`);
+            
+            log(`Checkout Success: ID=${data.id}, Status=${data.status}, Items=${data.items.length}`);
+            cart = []; // clear cart after successful reserve
+            renderCart();
             fetchAvailability();
         }
 
@@ -341,7 +404,7 @@
         }
 
         async function fetchAvailability() {
-            const productId = document.getElementById('productId').value;
+            const productId = document.getElementById('dashProductId').value;
             if(!productId) return;
             const data = await api(`/products/${productId}/availability`);
             document.getElementById('totalAvailable').innerText = data.totalAvailable;
