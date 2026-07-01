@@ -24,6 +24,9 @@
 
         @keyframes slideUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes gridMove { from { background-position: 0 0, 0 0, -1px -1px, -1px -1px; } to { background-position: 0 0, 0 0, 29px 29px, 29px 29px; } }
+        @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(176, 230, 51, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(176, 230, 51, 0); } 100% { box-shadow: 0 0 0 0 rgba(176, 230, 51, 0); } }
+        @keyframes flicker { 0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; } 20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.6; } }
 
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
@@ -41,6 +44,7 @@
             flex-direction: column;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
+            animation: gridMove 15s linear infinite;
         }
 
         /* Navbar */
@@ -56,8 +60,8 @@
             border-bottom: 1px solid var(--accent-primary);
             border-top: 2px solid var(--accent-primary);
         }
-        .navbar h1 { margin: 0; font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px; color: var(--accent-primary); }
-        .badge { background: rgba(176, 230, 51, 0.1); border: 1px solid rgba(176, 230, 51, 0.2); border-radius: 4px; padding: 4px 10px; font-size: 0.7rem; color: var(--accent-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .navbar h1 { margin: 0; font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px; color: var(--accent-primary); animation: flicker 5s infinite; }
+        .badge { background: rgba(176, 230, 51, 0.1); border: 1px solid rgba(176, 230, 51, 0.2); border-radius: 4px; padding: 4px 10px; font-size: 0.7rem; color: var(--accent-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; animation: pulseGlow 2s infinite; }
 
         /* Main Layout */
         .layout {
