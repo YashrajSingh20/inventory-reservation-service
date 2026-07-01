@@ -352,7 +352,20 @@
                 if (!res.ok) throw new Error(data.message || JSON.stringify(data));
                 return data;
             } catch (err) {
-                log(`API ERROR: ${err.message}`, 'err');
+                let msg = err.message;
+                if (typeof products !== 'undefined') {
+                    for (let p of products) {
+                        if (p.id && msg.includes(p.id)) {
+                            if (msg.includes("No location available") || msg.includes("Stock became unavailable")) {
+                                msg = `The item "${p.name}" is currently out of stock.`;
+                            } else {
+                                msg = msg.replace(p.id, `"${p.name}"`);
+                            }
+                        }
+                    }
+                }
+                log(`API ERROR: ${msg}`, 'err');
+                err.message = msg;
                 throw err;
             }
         }
