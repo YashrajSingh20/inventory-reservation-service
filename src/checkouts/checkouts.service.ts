@@ -28,7 +28,7 @@ export class CheckoutsService {
       // 1. Idempotency Check
       const existingCheckout = await manager.findOne(Checkout, {
         where: { idempotencyKey },
-        relations: ['items']
+        relations: { items: true }
       });
 
       if (existingCheckout) {
@@ -120,7 +120,7 @@ export class CheckoutsService {
   // Payment Endpoints
   async markPaymentSuccess(checkoutId: string): Promise<Checkout> {
     return this.dataSource.transaction(async (manager) => {
-      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId }, relations: ['items'] });
+      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId }, relations: { items: true } });
       if (!checkout) throw new NotFoundException('Checkout not found');
       if (checkout.status !== CheckoutStatus.RESERVED && checkout.status !== CheckoutStatus.ABANDONED) {
         throw new BadRequestException(`Cannot mark success for checkout in status ${checkout.status}`);
@@ -154,7 +154,7 @@ export class CheckoutsService {
 
   async markPaymentFailed(checkoutId: string): Promise<Checkout> {
     return this.dataSource.transaction(async (manager) => {
-      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId }, relations: ['items'] });
+      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId }, relations: { items: true } });
       if (!checkout) throw new NotFoundException('Checkout not found');
       if (checkout.status !== CheckoutStatus.RESERVED && checkout.status !== CheckoutStatus.ABANDONED) {
         throw new BadRequestException(`Cannot fail checkout in status ${checkout.status}`);
@@ -190,7 +190,7 @@ export class CheckoutsService {
     const deadline = new Date();
     deadline.setMinutes(deadline.getMinutes() + retryWindowMinutes);
 
-    const checkout = await this.checkoutRepository.findOne({ where: { id: checkoutId }, relations: ['items'] });
+    const checkout = await this.checkoutRepository.findOne({ where: { id: checkoutId }, relations: { items: true } });
     if (!checkout) throw new NotFoundException('Checkout not found');
     if (checkout.status !== CheckoutStatus.RESERVED) {
       throw new BadRequestException(`Cannot abandon checkout in status ${checkout.status}`);
