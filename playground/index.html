@@ -451,6 +451,18 @@
             renderCart();
         }
 
+        function updateCartQty(productId, delta) {
+            const existing = cart.find(c => c.productId === productId);
+            if(existing) {
+                existing.quantity += delta;
+                if(existing.quantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    renderCart();
+                }
+            }
+        }
+
         function renderCart() {
             const container = document.getElementById('cartItems');
             if(cart.length === 0) {
@@ -460,10 +472,14 @@
 
             container.innerHTML = cart.map(item => `
                 <div class="cart-item">
-                    <span>
-                        <span style="color: var(--accent-primary); font-weight: 600; margin-right: 8px;">${item.quantity}x</span>
-                        ${item.product.name}
-                    </span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; background: var(--bg-surface); border-radius: 6px; border: 1px solid var(--border-subtle); overflow: hidden;">
+                            <button class="btn" style="padding: 0.2rem 0.5rem; border: none; border-radius: 0; background: transparent; min-width: 28px;" onclick="updateCartQty('${item.productId}', -1)">-</button>
+                            <span style="color: var(--accent-primary); font-weight: 600; padding: 0 5px; min-width: 20px; text-align: center; font-size: 0.9rem;">${item.quantity}</span>
+                            <button class="btn" style="padding: 0.2rem 0.5rem; border: none; border-radius: 0; background: transparent; min-width: 28px;" onclick="updateCartQty('${item.productId}', 1)">+</button>
+                        </div>
+                        <span style="font-weight: 600;">${item.product.name}</span>
+                    </div>
                     <button class="btn" style="padding: 0.2rem 0.5rem; background: transparent; border: none; color: var(--accent-danger);" onclick="removeFromCart('${item.productId}')">&times;</button>
                 </div>
             `).join('');
