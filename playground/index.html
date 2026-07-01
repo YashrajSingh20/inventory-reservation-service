@@ -29,6 +29,12 @@
             font-family: 'Plus Jakarta Sans', sans-serif; 
             margin: 0; 
             background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(176, 230, 51, 0.06), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(176, 230, 51, 0.04), transparent 25%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
             color: var(--text-main); 
             height: 100vh;
             display: flex;
@@ -43,12 +49,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--bg-base);
+            background: rgba(16, 17, 16, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             z-index: 100;
             border-bottom: 1px solid var(--border-subtle);
+            border-top: 2px solid var(--accent-primary);
         }
-        .navbar h1 { margin: 0; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.3px; color: var(--text-main); }
-        .badge { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 10px; font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .navbar h1 { margin: 0; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.3px; color: var(--text-main); text-shadow: 0 0 20px rgba(176, 230, 51, 0.2); }
+        .badge { background: rgba(176, 230, 51, 0.1); border: 1px solid rgba(176, 230, 51, 0.2); border-radius: 4px; padding: 4px 10px; font-size: 0.7rem; color: var(--accent-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* Main Layout */
         .layout {
