@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distributed Checkout System Architecture</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --bg-base: #101110;
@@ -22,23 +25,86 @@
             --transition-smooth: all 0.2s ease-out;
         }
 
-        @keyframes slideUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes gridMove { from { background-position: 0 0, 0 0, -1px -1px, -1px -1px; } to { background-position: 0 0, 0 0, 29px 29px, 29px 29px; } }
-        @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(176, 230, 51, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(176, 230, 51, 0); } 100% { box-shadow: 0 0 0 0 rgba(176, 230, 51, 0); } }
-        @keyframes flicker { 0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; } 20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.6; } }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
 
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            margin: 0; 
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes gridMove {
+            from {
+                background-position: 0 0, 0 0, -1px -1px, -1px -1px;
+            }
+
+            to {
+                background-position: 0 0, 0 0, 29px 29px, 29px 29px;
+            }
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(176, 230, 51, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(176, 230, 51, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(176, 230, 51, 0);
+            }
+        }
+
+        @keyframes flicker {
+
+            0%,
+            19.999%,
+            22%,
+            62.999%,
+            64%,
+            64.999%,
+            70%,
+            100% {
+                opacity: 1;
+            }
+
+            20%,
+            21.999%,
+            63%,
+            63.999%,
+            65%,
+            69.999% {
+                opacity: 0.6;
+            }
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
             background-color: var(--bg-base);
-            background-image: 
+            background-image:
                 radial-gradient(circle at 15% 50%, rgba(176, 230, 51, 0.06), transparent 25%),
                 radial-gradient(circle at 85% 30%, rgba(176, 230, 51, 0.04), transparent 25%),
                 linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
             background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
-            color: var(--text-main); 
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -60,8 +126,29 @@
             border-bottom: 1px solid var(--accent-primary);
             border-top: 2px solid var(--accent-primary);
         }
-        .navbar h1 { margin: 0; font-family: 'Orbitron', sans-serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px; color: var(--accent-primary); animation: flicker 5s infinite; }
-        .badge { background: rgba(176, 230, 51, 0.1); border: 1px solid rgba(176, 230, 51, 0.2); border-radius: 4px; padding: 4px 10px; font-size: 0.7rem; color: var(--accent-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; animation: pulseGlow 2s infinite; }
+
+        .navbar h1 {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--accent-primary);
+            animation: flicker 5s infinite;
+        }
+
+        .badge {
+            background: rgba(176, 230, 51, 0.1);
+            border: 1px solid rgba(176, 230, 51, 0.2);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            animation: pulseGlow 2s infinite;
+        }
 
         /* Main Layout */
         .layout {
@@ -84,13 +171,13 @@
 
         .mobile-frame {
             width: 100%;
-            max-width: 380px;
+            max-width: 350px;
             height: 100%;
             max-height: 750px;
-            background: #262726;
+            background: #000000;
             border-radius: 40px;
             padding: 8px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 0 4px #1a1a1a;
             position: relative;
             display: flex;
             flex-direction: column;
@@ -101,24 +188,35 @@
             top: 8px;
             left: 50%;
             transform: translateX(-50%);
-            width: 140px;
+            width: 120px;
             height: 25px;
-            background: #262726;
+            background: #000000;
             border-bottom-left-radius: 16px;
             border-bottom-right-radius: 16px;
             z-index: 20;
         }
 
         .storefront {
-            padding: 3.5rem 1.5rem 2rem 1.5rem;
+            padding: 3.5rem 1rem 2rem 1rem;
             overflow-y: auto;
-            background: var(--bg-panel);
+            background: #0a0a0a;
             border-radius: 32px;
             flex: 1;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            min-height: 0;
+            box-shadow: none;
         }
 
-        .section-header { font-size: 1.4rem; font-weight: 700; margin-top: 0; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; letter-spacing: -0.3px; color: var(--text-main); }
+        .section-header {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
 
         .btn {
             background: var(--bg-surface);
@@ -132,30 +230,52 @@
             cursor: pointer;
             transition: var(--transition-smooth);
         }
-        .btn:hover { background: #262726; border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-        
-        .btn-primary { 
-            background: linear-gradient(180deg, #242821 0%, #151813 100%); 
-            color: var(--accent-primary); 
+
+        .btn:hover {
+            background: #262726;
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(180deg, #242821 0%, #151813 100%);
+            color: var(--accent-primary);
             border: 1px solid rgba(176, 230, 51, 0.3);
             text-shadow: 0 0 10px rgba(176, 230, 51, 0.2);
         }
-        .btn-primary:hover { 
-            background: linear-gradient(180deg, #2a2e26 0%, #1a1e17 100%); 
-            border-color: var(--accent-primary); 
+
+        .btn-primary:hover {
+            background: linear-gradient(180deg, #2a2e26 0%, #1a1e17 100%);
+            border-color: var(--accent-primary);
             box-shadow: 0 0 15px rgba(176, 230, 51, 0.1);
         }
-        
-        .btn-success { background: var(--bg-surface); color: var(--accent-success); }
-        .btn-danger { background: var(--bg-surface); color: var(--accent-danger); }
+
+        .btn-success {
+            background: var(--bg-surface);
+            color: var(--accent-success);
+        }
+
+        .btn-danger {
+            background: var(--bg-surface);
+            color: var(--accent-danger);
+        }
 
         /* Products Grid */
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 3rem; }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+        }
+
         .product-card {
             background: var(--bg-surface);
             border-radius: 8px;
-            padding: 1.5rem;
+            padding: 1rem;
             text-align: center;
             transition: var(--transition-smooth);
             display: flex;
@@ -165,26 +285,113 @@
             opacity: 0;
             border: 1px solid transparent;
         }
-        .product-grid .product-card:nth-child(1) { animation-delay: 0.05s; }
-        .product-grid .product-card:nth-child(2) { animation-delay: 0.1s; }
-        .product-grid .product-card:nth-child(3) { animation-delay: 0.15s; }
-        
-        .product-card:hover { border-color: var(--border-hover); background: #232523; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-        .product-icon { font-size: 2.8rem; margin-bottom: 1.2rem; transition: transform 0.2s ease; }
-        .product-card:hover .product-icon { transform: scale(1.05); }
-        .product-name { font-weight: 700; margin-bottom: 0.3rem; font-size: 1.05rem; letter-spacing: -0.2px; }
-        .product-sku { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1.2rem; font-family: 'Fira Code', monospace; }
+
+        .product-grid .product-card:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .product-grid .product-card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .product-grid .product-card:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        .product-card:hover {
+            border-color: var(--border-hover);
+            background: #232523;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .product-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+
+        .product-card:hover .product-icon {
+            transform: scale(1.05);
+        }
+
+        .product-name {
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            font-size: 0.85rem;
+            letter-spacing: -0.2px;
+        }
+
+        .product-sku {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 1.2rem;
+            font-family: 'Fira Code', monospace;
+        }
 
         /* Cart & Checkout */
-        .cart-panel { background: var(--bg-surface); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border-subtle); }
-        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid var(--border-subtle); animation: slideUp 0.2s ease-out; font-weight: 500; font-size: 0.9rem; }
-        .cart-item:last-child { border-bottom: none; padding-bottom: 0; }
-        
-        .input-group { margin-top: 1.5rem; }
-        .input-group label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
-        .input-group input { width: 100%; padding: 0.8rem; background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; color: var(--text-main); font-family: 'Fira Code', monospace; box-sizing: border-box; transition: var(--transition-smooth); font-size: 0.85rem; }
-        .input-group input:focus { outline: none; border-color: var(--accent-primary); background: #161716; }
-        .input-group input[readonly] { color: var(--text-muted); background: var(--bg-surface); cursor: not-allowed; }
+        .cart-panel {
+            background: var(--bg-surface);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+            animation: slideUp 0.2s ease-out;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .input-group {
+            margin-top: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-family: 'Fira Code', monospace;
+            box-sizing: border-box;
+            transition: var(--transition-smooth);
+            font-size: 0.85rem;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: #161716;
+        }
+
+        .input-group input[readonly] {
+            color: var(--text-muted);
+            background: var(--bg-surface);
+            cursor: not-allowed;
+        }
 
         /* Right: Control Room */
         .control-room {
@@ -206,22 +413,79 @@
             align-items: flex-start;
             border: 1px solid var(--border-subtle);
         }
-        .info-icon { font-size: 1.2rem; }
-        .info-content h4 { margin: 0 0 0.3rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-main); letter-spacing: -0.1px; }
-        .info-content p { margin: 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+        .info-icon {
+            font-size: 1.2rem;
+        }
+
+        .info-content h4 {
+            margin: 0 0 0.3rem 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.1px;
+        }
+
+        .info-content p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
 
         /* Tables */
-        .table-container { border-radius: 8px; overflow: hidden; background: var(--bg-panel); border: 1px solid var(--border-subtle); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { padding: 0.8rem 1rem; text-align: left; border-bottom: 1px solid var(--border-subtle); }
-        th { background: rgba(255,255,255,0.02); color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        tr { transition: background 0.2s; }
-        tr:hover { background: var(--bg-surface); }
-        tr:last-child td { border-bottom: none; }
-        
-        .stock-good { color: var(--accent-success); }
-        .stock-low { color: var(--accent-warning); }
-        .stock-out { color: var(--accent-danger); }
+        .table-container {
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr {
+            transition: background 0.2s;
+        }
+
+        tr:hover {
+            background: var(--bg-surface);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .stock-good {
+            color: var(--accent-success);
+        }
+
+        .stock-low {
+            color: var(--accent-warning);
+        }
+
+        .stock-out {
+            color: var(--accent-danger);
+        }
 
         /* Terminal Logs */
         .terminal {
@@ -236,32 +500,99 @@
             line-height: 1.6;
             border: 1px solid #1a1a1a;
         }
-        .terminal div { animation: slideUp 0.1s ease-out; }
-        .terminal-time { color: #525252; margin-right: 8px; }
-        .terminal-sys { color: #8b8e8b; }
-        .terminal-success { color: var(--accent-success); }
-        .terminal-err { color: var(--accent-danger); }
-        .terminal-warn { color: var(--accent-warning); }
+
+        .terminal div {
+            animation: slideUp 0.1s ease-out;
+        }
+
+        .terminal-time {
+            color: #525252;
+            margin-right: 8px;
+        }
+
+        .terminal-sys {
+            color: #8b8e8b;
+        }
+
+        .terminal-success {
+            color: var(--accent-success);
+        }
+
+        .terminal-err {
+            color: var(--accent-danger);
+        }
+
+        .terminal-warn {
+            color: var(--accent-warning);
+        }
 
         /* Setup Overlay */
         #setupOverlay {
-            position: fixed; inset: 0; background: rgba(16, 17, 16, 0.9); backdrop-filter: blur(4px);
-            display: flex; justify-content: center; align-items: center; z-index: 1000; flex-direction: column;
+            position: fixed;
+            inset: 0;
+            background: rgba(16, 17, 16, 0.9);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
             animation: fadeIn 0.3s ease-out;
         }
-        .setup-box { background: var(--bg-panel); padding: 3rem; border-radius: 12px; text-align: center; max-width: 420px; border: 1px solid var(--border-subtle); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-        .spinner { width: 36px; height: 36px; border: 2px solid rgba(255,255,255,0.05); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.5rem auto; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .setup-box {
+            background: var(--bg-panel);
+            padding: 3rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 420px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 8px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
 
-        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
+
 <body>
 
     <!-- Initial Setup Overlay -->
@@ -269,10 +600,11 @@
         <div class="setup-box">
             <h2 style="margin-top: 0;">Welcome to the Demo</h2>
             <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 2rem;">
-                This playground visualizes a distributed inventory reservation system. 
+                This playground visualizes a distributed inventory reservation system.
                 Before we begin, we need to seed the database with mock warehouses and products.
             </p>
-            <button class="btn btn-primary" style="width: 100%; padding: 1rem;" onclick="seedData()" id="seedBtn">Seed Demo Data</button>
+            <button class="btn btn-primary" style="width: 100%; padding: 1rem;" onclick="seedData()" id="seedBtn">Seed
+                Demo Data</button>
             <div id="seedLoader" class="hidden">
                 <div class="spinner"></div>
                 <p style="color: var(--text-muted); font-size: 0.9rem;">Initializing databases...</p>
@@ -282,7 +614,7 @@
 
     <!-- Navbar -->
     <nav class="navbar">
-        <h1>Distributed Inventory System</h1>
+        <h1>Distributed Inventory System.</h1>
         <div class="badge">Live Architecture Demo</div>
     </nav>
 
@@ -292,45 +624,53 @@
             <div class="mobile-frame">
                 <div class="mobile-notch"></div>
                 <div class="storefront">
-            <div class="section-header">
-                <span>E-Commerce Storefront</span>
-            </div>
+                    <div class="section-header">
+                        <span>E-Commerce Storefront</span>
+                    </div>
 
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 2rem;">
-                Browse the catalog. Add multiple items to your cart to test atomic batch reservations.
-            </p>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 2rem;">
+                        Browse the catalog. Add multiple items to your cart to test atomic batch reservations.
+                    </p>
 
-            <div class="product-grid" id="productGrid">
-                <!-- Populated via JS -->
-            </div>
+                    <div class="product-grid" id="productGrid">
+                        <!-- Populated via JS -->
+                    </div>
 
-            <div class="cart-panel">
-                <h3 style="margin-top: 0; margin-bottom: 1rem;">Shopping Cart</h3>
-                <div id="cartItems">
-                    <div class="cart-item" style="color: var(--text-muted); justify-content: center;">Cart is empty</div>
+                    <div class="cart-panel">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem;">Shopping Cart</h3>
+                        <div id="cartItems">
+                            <div class="cart-item" style="color: var(--text-muted); justify-content: center;">Cart is
+                                empty</div>
+                        </div>
+
+                        <div class="input-group" style="margin-top: 1.5rem;">
+                            <label>Delivery Pincode (Routing)</label>
+                            <input type="text" id="checkoutPincode" value="10001" />
+                        </div>
+
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1rem;"
+                            onclick="startCheckout()">Proceed to Checkout (Reserve)</button>
+                    </div>
+
+                    <div class="cart-panel hidden" id="paymentPanel"
+                        style="border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.05);">
+                        <h3 style="margin-top: 0; color: #fff;">Simulate Payment Gateway</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">The stock is currently
+                            <strong>RESERVED</strong> (locked). Finalize the payment state to permanently deduct or
+                            release it.</p>
+
+                        <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                            <button class="btn btn-success" style="flex: 1;"
+                                onclick="markPayment('success')">Success</button>
+                            <button class="btn btn-danger" style="flex: 1;"
+                                onclick="markPayment('failed')">Failed</button>
+                        </div>
+                        <button class="btn" style="width: 100%; margin-top: 10px;"
+                            onclick="markPayment('abandoned')">Abandon (Let Cron Sweep)</button>
+                    </div>
                 </div>
-                
-                <div class="input-group" style="margin-top: 1.5rem;">
-                    <label>Delivery Pincode (Routing)</label>
-                    <input type="text" id="checkoutPincode" value="10001" />
-                </div>
-                
-                <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1rem;" onclick="startCheckout()">Proceed to Checkout (Reserve)</button>
-            </div>
-            
-            <div class="cart-panel hidden" id="paymentPanel" style="border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.05);">
-                <h3 style="margin-top: 0; color: #fff;">Simulate Payment Gateway</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">The stock is currently <strong>RESERVED</strong> (locked). Finalize the payment state to permanently deduct or release it.</p>
-                
-                <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-                    <button class="btn btn-success" style="flex: 1;" onclick="markPayment('success')">Success</button>
-                    <button class="btn btn-danger" style="flex: 1;" onclick="markPayment('failed')">Failed</button>
-                </div>
-                <button class="btn" style="width: 100%; margin-top: 10px;" onclick="markPayment('abandoned')">Abandon (Let Cron Sweep)</button>
-            </div>
             </div>
         </div>
-    </div>
 
         <!-- Control Room (Right) -->
         <div class="control-room">
@@ -344,7 +684,9 @@
                     <div class="info-icon">🔄</div>
                     <div class="info-content">
                         <h4>Idempotent API Requests</h4>
-                        <p>The frontend generates a unique Idempotency Key for every checkout attempt. This ensures that if a network timeout occurs and the client retries, the backend won't double-charge or reserve stock twice.</p>
+                        <p>The frontend generates a unique Idempotency Key for every checkout attempt. This ensures that
+                            if a network timeout occurs and the client retries, the backend won't double-charge or
+                            reserve stock twice.</p>
                         <div class="input-group">
                             <input type="text" id="idempotencyKey" readonly />
                         </div>
@@ -354,7 +696,9 @@
                     <div class="info-icon">🔒</div>
                     <div class="info-content">
                         <h4>Deadlock Prevention (Pessimistic Locking)</h4>
-                        <p>When checking out multiple items, the backend sorts all requested products alphabetically by ID before acquiring Row-Level Postgres Locks. This strict ordering prevents database deadlocks when concurrent users checkout intersecting carts.</p>
+                        <p>When checking out multiple items, the backend sorts all requested products alphabetically by
+                            ID before acquiring Row-Level Postgres Locks. This strict ordering prevents database
+                            deadlocks when concurrent users checkout intersecting carts.</p>
                     </div>
                 </div>
             </div>
@@ -363,7 +707,8 @@
             <div>
                 <div class="flex-between" style="margin-bottom: 0.5rem;">
                     <h3 style="margin: 0;">Global Inventory Dashboard</h3>
-                    <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="refreshDashboard()">Refresh Sync</button>
+                    <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                        onclick="refreshDashboard()">Refresh Sync</button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -377,12 +722,16 @@
                             </tr>
                         </thead>
                         <tbody id="dashboardBody">
-                            <tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No data.</td></tr>
+                            <tr>
+                                <td colspan="5" style="text-align:center; color: var(--text-muted);">No data.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
                 <div style="margin-top: 10px; text-align: right;">
-                    <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: #171717; border-color: #262626;" onclick="sweepExpired()">Trigger Expiry Cron Sweep</button>
+                    <button class="btn"
+                        style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: #171717; border-color: #262626;"
+                        onclick="sweepExpired()">Trigger Expiry Cron Sweep</button>
                 </div>
             </div>
 
@@ -398,7 +747,7 @@
 
     <script>
         const API_URL = 'https://inventory-reservation-service.onrender.com';
-        
+
         let products = [
             { id: null, name: 'MacBook Pro M3', icon: '💻', sku: 'MBP-M3' },
             { id: null, name: 'iPhone 15 Pro', icon: '📱', sku: 'IP15-P' },
@@ -416,10 +765,10 @@
         const log = (msg, type = 'sys') => {
             const time = new Date().toISOString().split('T')[1].split('.')[0];
             let colorClass = 'terminal-sys';
-            if(type === 'success') colorClass = 'terminal-success';
-            if(type === 'err') colorClass = 'terminal-err';
-            if(type === 'warn') colorClass = 'terminal-warn';
-            
+            if (type === 'success') colorClass = 'terminal-success';
+            if (type === 'err') colorClass = 'terminal-err';
+            if (type === 'warn') colorClass = 'terminal-warn';
+
             terminal.innerHTML += `<div><span class="terminal-time">[${time}]</span> <span class="${colorClass}">${msg}</span></div>`;
             terminal.scrollTop = terminal.scrollHeight;
         };
@@ -472,18 +821,18 @@
                     const res = await api('/products', 'POST', { name: p.name, sku: uniqueSku });
                     p.id = res.id;
                     p.sku = uniqueSku;
-                    log(`Created Product [${p.sku}] -> ${p.id.substring(0,8)}...`);
+                    log(`Created Product [${p.sku}] -> ${p.id.substring(0, 8)}...`);
                 }
 
                 // 2. Create Locations
                 log('Seeding warehouses...', 'sys');
                 for (let l of locations) {
-                    const res = await api('/locations', 'POST', { 
-                        name: l.name, city: l.city, state: l.state, 
-                        servicePincodes: l.pincodes, priority: 1 
+                    const res = await api('/locations', 'POST', {
+                        name: l.name, city: l.city, state: l.state,
+                        servicePincodes: l.pincodes, priority: 1
                     });
                     l.id = res.id;
-                    log(`Created Warehouse [${l.name}] -> ${l.id.substring(0,8)}...`);
+                    log(`Created Warehouse [${l.name}] -> ${l.id.substring(0, 8)}...`);
                 }
 
                 // 3. Add Inventory (50 items of each product in each warehouse)
@@ -496,7 +845,7 @@
 
                 log('Data seeding complete!', 'success');
                 document.getElementById('setupOverlay').classList.add('hidden');
-                
+
                 renderProducts();
                 generateIdempotencyKey();
                 refreshDashboard();
@@ -524,7 +873,7 @@
         function addToCart(productId) {
             const product = products.find(p => p.id === productId);
             const existing = cart.find(c => c.productId === productId);
-            if(existing) {
+            if (existing) {
                 existing.quantity += 1;
             } else {
                 cart.push({ productId, quantity: 1, product });
@@ -540,9 +889,9 @@
 
         function updateCartQty(productId, delta) {
             const existing = cart.find(c => c.productId === productId);
-            if(existing) {
+            if (existing) {
                 existing.quantity += delta;
-                if(existing.quantity <= 0) {
+                if (existing.quantity <= 0) {
                     removeFromCart(productId);
                 } else {
                     renderCart();
@@ -552,7 +901,7 @@
 
         function renderCart() {
             const container = document.getElementById('cartItems');
-            if(cart.length === 0) {
+            if (cart.length === 0) {
                 container.innerHTML = '<div class="cart-item" style="color: var(--text-muted); justify-content: center;">Cart is empty</div>';
                 return;
             }
@@ -574,8 +923,8 @@
 
         // --- Checkout Flow ---
         async function startCheckout() {
-            if(cart.length === 0) return alert('Cart is empty!');
-            
+            if (cart.length === 0) return alert('Cart is empty!');
+
             const pincode = document.getElementById('checkoutPincode').value;
             const idempotencyKey = document.getElementById('idempotencyKey').value;
 
@@ -586,11 +935,11 @@
 
             try {
                 const res = await api('/checkouts', 'POST', { items: payloadItems, deliveryPincode: pincode }, { 'idempotency-key': idempotencyKey });
-                
+
                 activeCheckoutId = res.id;
                 log(`Reservation Successful! Lock Acquired & Released.`, 'success');
                 log(`Checkout ID: ${res.id}`, 'sys');
-                
+
                 res.items.forEach(item => {
                     const p = products.find(p => p.id === item.productId);
                     const l = locations.find(l => l.id === item.reservedLocationId);
@@ -605,7 +954,7 @@
                 // Show payment UI
                 document.getElementById('paymentPanel').classList.remove('hidden');
 
-            } catch(e) {
+            } catch (e) {
                 log(`Checkout Failed: ${e.message}`, 'err');
                 // Even on failure, regenerate idempotency key since the client saw the error.
                 generateIdempotencyKey();
@@ -613,16 +962,16 @@
         }
 
         async function markPayment(status) {
-            if(!activeCheckoutId) return;
+            if (!activeCheckoutId) return;
             log(`Processing Payment: ${status.toUpperCase()}...`, 'warn');
             try {
                 await api(`/checkouts/${activeCheckoutId}/payment/${status}`, 'POST');
                 log(`Payment State Finalized -> ${status.toUpperCase()}`, status === 'success' ? 'success' : 'err');
-                
+
                 document.getElementById('paymentPanel').classList.add('hidden');
                 activeCheckoutId = null;
                 refreshDashboard();
-            } catch(e) {
+            } catch (e) {
                 log(`Payment update failed: ${e.message}`, 'err');
             }
         }
@@ -638,19 +987,19 @@
         async function refreshDashboard() {
             const tbody = document.getElementById('dashboardBody');
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Syncing...</td></tr>';
-            
+
             let allHtml = '';
 
             for (let p of products) {
-                if(!p.id) continue;
+                if (!p.id) continue;
                 try {
                     const data = await api(`/products/${p.id}/availability`);
-                    if(data.locations.length === 0) continue;
-                    
+                    if (data.locations.length === 0) continue;
+
                     data.locations.forEach((loc, index) => {
                         const isFirst = index === 0;
                         const availClass = loc.available > 10 ? 'stock-good' : (loc.available > 0 ? 'stock-low' : 'stock-out');
-                        
+
                         allHtml += `
                             <tr>
                                 <td>${isFirst ? `<strong>${p.name}</strong><br><span class="text-xs">${p.sku}</span>` : ''}</td>
@@ -661,15 +1010,16 @@
                             </tr>
                         `;
                     });
-                } catch(e) {
+                } catch (e) {
                     console.error("Dashboard fetch error for", p.name);
                 }
             }
 
-            if(allHtml === '') allHtml = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No inventory found.</td></tr>';
+            if (allHtml === '') allHtml = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No inventory found.</td></tr>';
             tbody.innerHTML = allHtml;
         }
 
     </script>
 </body>
+
 </html>
