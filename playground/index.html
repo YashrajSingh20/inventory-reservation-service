@@ -171,7 +171,7 @@
 
         .mobile-frame {
             width: 100%;
-            max-width: 320px;
+            max-width: 290px;
             height: 80vh;
             max-height: 700px;
             overflow: hidden;
@@ -231,6 +231,12 @@
             flex: 1;
             min-height: 0;
             box-shadow: none;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .storefront::-webkit-scrollbar {
+            display: none;
         }
 
         .section-header {
