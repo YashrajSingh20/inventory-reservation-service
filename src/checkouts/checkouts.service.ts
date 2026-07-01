@@ -48,17 +48,19 @@ export class CheckoutsService {
       // 2. Select Locations for all items
       const selections: { productId: string; quantity: number; locationId: string }[] = [];
       for (const item of consolidatedItems) {
-        const locationId = await this.inventoryService.selectLocationForCheckout(
+        const allocations = await this.inventoryService.allocateLocationsForCheckout(
           item.productId,
           item.quantity,
           createCheckoutDto.deliveryPincode,
           manager
         );
 
-        if (!locationId) {
+        if (!allocations) {
           throw new ConflictException(`No location available to fulfill product ${item.productId}`);
         }
-        selections.push({ ...item, locationId });
+        for (const alloc of allocations) {
+          selections.push({ productId: item.productId, quantity: alloc.quantity, locationId: alloc.locationId });
+        }
       }
 
       // 3. Sort selections to prevent deadlocks when locking rows

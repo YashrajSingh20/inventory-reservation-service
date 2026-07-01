@@ -35,71 +35,67 @@ export class InventoryService {
     return this.inventoryRepository.save(inventory);
   }
 
-  // Implementation of the location selection algorithm
+  // Implementation of the location allocation algorithm (Order Splitting)
   // Exposed as a dedicated method for independent testability
-  async selectLocationForCheckout(
+  async allocateLocationsForCheckout(
     productId: string, 
     quantity: number, 
     deliveryPincode: string,
     manager?: EntityManager // Allow passing a transactional entity manager
-  ): Promise<string | null> {
-    const locRepo = manager ? manager.getRepository(Location) : this.locationRepository;
+  ): Promise<{ locationId: string, quantity: number }[] | null> {
+    const inventoryRepo = manager ? manager.getRepository(Inventory) : this.inventoryRepository;
 
-    // 1. Service zone match
-    const serviceZoneLocations = await locRepo
-      .createQueryBuilder('location')
-      .innerJoin('inventory', 'inventory', 'inventory.locationId = location.id')
-      .where('location.isActive = :isActive', { isActive: true })
-      .andWhere(':pincode = ANY(location.servicePincodes)', { pincode: deliveryPincode })
-      .andWhere('inventory.productId = :productId', { productId })
-      .andWhere('(inventory.stock - inventory.reserved) >= :quantity', { quantity })
-      .orderBy('location.priority', 'ASC')
-      .getMany();
-
-    if (serviceZoneLocations.length > 0) {
-      return serviceZoneLocations[0].id; // Pick the one with LOWEST priority number
-    }
-
-    // 2. Fallback logic
-    const outOfStockServiceZoneLocations = await locRepo
-      .createQueryBuilder('location')
-      .where('location.isActive = :isActive', { isActive: true })
-      .andWhere(':pincode = ANY(location.servicePincodes)', { pincode: deliveryPincode })
-      .orderBy('location.priority', 'ASC')
-      .getMany();
-
-    let referenceCity: string | null = null;
-    let referenceState: string | null = null;
-
-    if (outOfStockServiceZoneLocations.length > 0) {
-      const bestOutOfStock = outOfStockServiceZoneLocations[0];
-      referenceCity = bestOutOfStock.city;
-      referenceState = bestOutOfStock.state;
-    }
-
-    const activeLocationsWithStock = await locRepo
-      .createQueryBuilder('location')
-      .innerJoin('inventory', 'inventory', 'inventory.locationId = location.id')
+    // 1. Fetch all active warehouses that have ANY stock for this product
+    const inventoryRecords = await inventoryRepo
+      .createQueryBuilder('inventory')
+      .innerJoinAndSelect('inventory.location', 'location')
       .where('location.isActive = :isActive', { isActive: true })
       .andWhere('inventory.productId = :productId', { productId })
-      .andWhere('(inventory.stock - inventory.reserved) >= :quantity', { quantity })
+      .andWhere('(inventory.stock - inventory.reserved) > 0')
       .getMany();
 
-    if (activeLocationsWithStock.length === 0) {
+    if (inventoryRecords.length === 0) {
       return null;
     }
 
-    if (referenceCity && referenceState) {
-      // 2a. same city as...
-      const sameCity = activeLocationsWithStock.find(loc => loc.city === referenceCity && loc.state === referenceState);
-      if (sameCity) return sameCity.id;
+    // 2. Sort warehouses using smart routing logic
+    inventoryRecords.sort((a, b) => {
+      const aServes = a.location.servicePincodes.includes(deliveryPincode);
+      const bServes = b.location.servicePincodes.includes(deliveryPincode);
+      
+      // 1. Pincode match gets highest preference
+      if (aServes && !bServes) return -1;
+      if (!aServes && bServes) return 1;
+      
+      // 2. Priority (lowest number first)
+      if (a.location.priority !== b.location.priority) {
+          return a.location.priority - b.location.priority;
+      }
+      
+      // 3. Fallback: just return 0 to maintain relative order
+      return 0;
+    });
 
-      // 2b. same state
-      const sameState = activeLocationsWithStock.find(loc => loc.state === referenceState);
-      if (sameState) return sameState.id;
+    // 3. Greedy Allocation (Order Splitting)
+    const allocations: { locationId: string, quantity: number }[] = [];
+    let remaining = quantity;
+
+    for (const record of inventoryRecords) {
+      const available = record.stock - record.reserved;
+      if (available <= 0) continue;
+
+      const take = Math.min(available, remaining);
+      allocations.push({ locationId: record.locationId, quantity: take });
+      remaining -= take;
+
+      if (remaining === 0) break;
     }
 
-    // 2c. any active location with sufficient stock
-    return activeLocationsWithStock[0].id;
+    if (remaining > 0) {
+      // Could not fulfill the ENTIRE requested quantity across all warehouses combined
+      return null;
+    }
+
+    return allocations;
   }
 }

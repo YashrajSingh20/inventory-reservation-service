@@ -170,20 +170,20 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     expect(checkoutRes.body.items[0].reservedLocationId).toBe(serviceLoc.id);
   });
 
-  it('Fallback selection works when no service-zone location has stock', async () => {
+  it('Fallback selection selects the location with highest priority when no service zone matches', async () => {
     const product = await createProduct();
     
     // Service location that matches pincode but has NO stock
     const outOfStockLoc = await createLocation('No Stock Loc', 'Boston', 'MA', ['02101'], 1);
     await addInventory(product.id, outOfStockLoc.id, 0);
 
-    // Random active location in DIFFERENT city/state with stock
-    const randomLoc = await createLocation('Random Loc', 'Seattle', 'WA', ['98101'], 2);
-    await addInventory(product.id, randomLoc.id, 10);
+    // Location with priority 2
+    const priority2Loc = await createLocation('Priority 2 Loc', 'Seattle', 'WA', ['98101'], 2);
+    await addInventory(product.id, priority2Loc.id, 10);
 
-    // Active location in SAME state (fallback 2b) with stock
-    const sameStateLoc = await createLocation('Same State Loc', 'Cambridge', 'MA', ['02138'], 3);
-    await addInventory(product.id, sameStateLoc.id, 10);
+    // Location with priority 3
+    const priority3Loc = await createLocation('Priority 3 Loc', 'Cambridge', 'MA', ['02138'], 3);
+    await addInventory(product.id, priority3Loc.id, 10);
 
     const checkoutRes = await request(app.getHttpServer())
       .post('/checkouts')
@@ -191,7 +191,7 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
       .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '02101' })
       .expect(201);
 
-    expect(checkoutRes.body.items[0].reservedLocationId).toBe(sameStateLoc.id);
+    expect(checkoutRes.body.items[0].reservedLocationId).toBe(priority2Loc.id);
   });
 
   it('Idempotent checkout retry returns existing checkout without double reserving', async () => {
@@ -311,5 +311,31 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
 
     const availB = await request(app.getHttpServer()).get(`/products/${prodB.id}/availability`);
     expect(availB.body.totalAvailable).toBe(7);
+  });
+
+  it('Splits a single order line across multiple warehouses if one warehouse cannot fulfill it entirely', async () => {
+    const product = await createProduct();
+    const loc1 = await createLocation('Loc 1', 'NY', 'NY', ['10001'], 1);
+    const loc2 = await createLocation('Loc 2', 'LA', 'CA', ['90001'], 2);
+
+    await addInventory(product.id, loc1.id, 50);
+    await addInventory(product.id, loc2.id, 50);
+
+    const res = await request(app.getHttpServer())
+      .post('/checkouts')
+      .set('Idempotency-Key', 'split-order-key')
+      .send({ 
+        items: [{ productId: product.id, quantity: 100 }], 
+        deliveryPincode: '10001' 
+      })
+      .expect(201);
+
+    expect(res.body.items).toHaveLength(2);
+    
+    const item1 = res.body.items.find((i: any) => i.reservedLocationId === loc1.id);
+    const item2 = res.body.items.find((i: any) => i.reservedLocationId === loc2.id);
+
+    expect(item1.quantity).toBe(50);
+    expect(item2.quantity).toBe(50);
   });
 });
