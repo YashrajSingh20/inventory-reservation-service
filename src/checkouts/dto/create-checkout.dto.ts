@@ -1,12 +1,13 @@
-import { IsUUID, IsInt, Min, IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateCheckoutItemDto } from './create-checkout-item.dto';
 
 export class CreateCheckoutDto {
-  @IsUUID()
-  productId: string;
-
-  @IsInt()
-  @Min(1)
-  quantity: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @ArrayMinSize(1)
+  @Type(() => CreateCheckoutItemDto)
+  items: CreateCheckoutItemDto[];
 
   @IsString()
   @IsNotEmpty()

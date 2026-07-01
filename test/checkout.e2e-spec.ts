@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from './../src/app.module';
 import { DataSource } from 'typeorm';
 
 jest.setTimeout(120000);
@@ -18,6 +17,8 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     process.env.DB_DATABASE = 'inventory_db';
     process.env.RETRY_WINDOW_MINUTES = '15';
 
+    const { AppModule } = require('./../src/app.module');
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -32,7 +33,7 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
   });
 
   afterEach(async () => {
-    await dataSource.query(`TRUNCATE TABLE checkouts, inventory, locations, products CASCADE`);
+    await dataSource.query(`TRUNCATE TABLE checkout_items, checkouts, inventory, locations, products CASCADE`);
   });
 
   const createProduct = async (name = 'Test Product', sku = 'TEST-SKU') => {
@@ -60,11 +61,12 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'test-key-1')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     expect(res.body.status).toBe('RESERVED');
-    expect(res.body.reservedLocationId).toBe(location.id);
+    expect(res.body.items).toBeDefined();
+    expect(res.body.items[0].reservedLocationId).toBe(location.id);
 
     // Verify inventory state
     const availability = await request(app.getHttpServer()).get(`/products/${product.id}/availability`).expect(200);
@@ -81,7 +83,7 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const checkoutRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'test-key-1')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     await request(app.getHttpServer())
@@ -102,7 +104,7 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const checkoutRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'test-key-1')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     await request(app.getHttpServer())
@@ -123,7 +125,7 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const checkoutRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'test-key-1')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     await request(app.getHttpServer())
@@ -162,10 +164,10 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const checkoutRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'key-pref')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
-    expect(checkoutRes.body.reservedLocationId).toBe(serviceLoc.id);
+    expect(checkoutRes.body.items[0].reservedLocationId).toBe(serviceLoc.id);
   });
 
   it('Fallback selection works when no service-zone location has stock', async () => {
@@ -186,10 +188,10 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const checkoutRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'key-fallback')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '02101' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '02101' })
       .expect(201);
 
-    expect(checkoutRes.body.reservedLocationId).toBe(sameStateLoc.id);
+    expect(checkoutRes.body.items[0].reservedLocationId).toBe(sameStateLoc.id);
   });
 
   it('Idempotent checkout retry returns existing checkout without double reserving', async () => {
@@ -200,13 +202,13 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const firstRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'idem-key')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     const secondRes = await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'idem-key')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     expect(firstRes.body.id).toBe(secondRes.body.id);
@@ -223,13 +225,13 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'idem-key-2')
-      .send({ productId: product.id, quantity: 2, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 2 }], deliveryPincode: '10001' })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/checkouts')
       .set('Idempotency-Key', 'idem-key-2')
-      .send({ productId: product.id, quantity: 5, deliveryPincode: '10001' })
+      .send({ items: [{ productId: product.id, quantity: 5 }], deliveryPincode: '10001' })
       .expect(409);
   });
 
@@ -247,7 +249,7 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
         request(app.getHttpServer())
           .post('/checkouts')
           .set('Idempotency-Key', `concurrent-key-${i}`)
-          .send({ productId: product.id, quantity: 1, deliveryPincode: '10001' })
+          .send({ items: [{ productId: product.id, quantity: 1 }], deliveryPincode: '10001' })
       );
     }
 
@@ -267,5 +269,47 @@ describe('Checkout Flow & Concurrency (e2e)', () => {
     const availability = await request(app.getHttpServer()).get(`/products/${product.id}/availability`);
     expect(availability.body.totalAvailable).toBe(0);
     expect(availability.body.locations[0].reserved).toBe(5);
+  });
+
+  it('Multiple products in a single checkout are fulfilled from appropriate locations', async () => {
+    const prodA = await createProduct('Product A', 'SKU-A');
+    const prodB = await createProduct('Product B', 'SKU-B');
+    
+    const loc1 = await createLocation('Loc 1', 'NY', 'NY', ['10001'], 1);
+    const loc2 = await createLocation('Loc 2', 'NJ', 'NJ', ['10001'], 2);
+
+    // ProdA only in Loc1, ProdB only in Loc2
+    await addInventory(prodA.id, loc1.id, 10);
+    await addInventory(prodB.id, loc2.id, 10);
+
+    const res = await request(app.getHttpServer())
+      .post('/checkouts')
+      .set('Idempotency-Key', 'multi-product-key')
+      .send({ 
+        items: [
+          { productId: prodA.id, quantity: 2 },
+          { productId: prodB.id, quantity: 3 }
+        ], 
+        deliveryPincode: '10001' 
+      })
+      .expect(201);
+
+    expect(res.body.items).toHaveLength(2);
+    
+    const itemA = res.body.items.find((i: any) => i.productId === prodA.id);
+    const itemB = res.body.items.find((i: any) => i.productId === prodB.id);
+
+    expect(itemA.reservedLocationId).toBe(loc1.id);
+    expect(itemA.quantity).toBe(2);
+
+    expect(itemB.reservedLocationId).toBe(loc2.id);
+    expect(itemB.quantity).toBe(3);
+
+    // Verify stock
+    const availA = await request(app.getHttpServer()).get(`/products/${prodA.id}/availability`);
+    expect(availA.body.totalAvailable).toBe(8);
+
+    const availB = await request(app.getHttpServer()).get(`/products/${prodB.id}/availability`);
+    expect(availB.body.totalAvailable).toBe(7);
   });
 });

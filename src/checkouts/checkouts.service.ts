@@ -2,6 +2,7 @@ import { Injectable, ConflictException, NotFoundException, BadRequestException }
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Checkout, CheckoutStatus } from './entities/checkout.entity';
+import { CheckoutItem } from './entities/checkout-item.entity';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { InventoryService } from '../inventory/inventory.service';
 import { Inventory } from '../inventory/entities/inventory.entity';
@@ -23,12 +24,11 @@ export class CheckoutsService {
   async createCheckout(createCheckoutDto: CreateCheckoutDto, idempotencyKey: string): Promise<Checkout> {
     const payloadHash = this.hashPayload(createCheckoutDto);
 
-    // We use a transaction to guarantee that the location selection, stock evaluation,
-    // row locking, and checkout creation happen atomically.
     return this.dataSource.transaction('READ COMMITTED', async (manager) => {
       // 1. Idempotency Check
       const existingCheckout = await manager.findOne(Checkout, {
         where: { idempotencyKey },
+        relations: ['items']
       });
 
       if (existingCheckout) {
@@ -38,63 +38,77 @@ export class CheckoutsService {
         return existingCheckout;
       }
 
-      // 2. Select Location
-      const locationId = await this.inventoryService.selectLocationForCheckout(
-        createCheckoutDto.productId,
-        createCheckoutDto.quantity,
-        createCheckoutDto.deliveryPincode,
-        manager
-      );
+      // Consolidate duplicate products in the request
+      const itemMap = new Map<string, number>();
+      for (const item of createCheckoutDto.items) {
+        itemMap.set(item.productId, (itemMap.get(item.productId) || 0) + item.quantity);
+      }
+      const consolidatedItems = Array.from(itemMap.entries()).map(([productId, quantity]) => ({ productId, quantity }));
 
-      if (!locationId) {
-        throw new ConflictException('No location available to fulfill this order');
+      // 2. Select Locations for all items
+      const selections: { productId: string; quantity: number; locationId: string }[] = [];
+      for (const item of consolidatedItems) {
+        const locationId = await this.inventoryService.selectLocationForCheckout(
+          item.productId,
+          item.quantity,
+          createCheckoutDto.deliveryPincode,
+          manager
+        );
+
+        if (!locationId) {
+          throw new ConflictException(`No location available to fulfill product ${item.productId}`);
+        }
+        selections.push({ ...item, locationId });
       }
 
-      // 3. Lock Inventory Row
-      // WHY HERE? We found a candidate location. Now we must acquire an exclusive lock
-      // (SELECT ... FOR UPDATE) on this specific inventory record before modifying it.
-      // This prevents any other concurrent checkout from reserving the same stock.
-      // We use pessimistic_write lock to tell Postgres to lock the row.
-      const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
-        .setLock('pessimistic_write')
-        .where('inventory.productId = :productId', { productId: createCheckoutDto.productId })
-        .andWhere('inventory.locationId = :locationId', { locationId })
-        .getOne();
+      // 3. Sort selections to prevent deadlocks when locking rows
+      selections.sort((a, b) => {
+        const pCompare = a.productId.localeCompare(b.productId);
+        if (pCompare !== 0) return pCompare;
+        return a.locationId.localeCompare(b.locationId);
+      });
 
-      if (!inventory) {
-        throw new NotFoundException('Inventory record not found');
+      // 4. Lock Inventory Rows and Reserve Stock
+      const checkoutItems = [];
+      for (const selection of selections) {
+        const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
+          .setLock('pessimistic_write')
+          .where('inventory.productId = :productId', { productId: selection.productId })
+          .andWhere('inventory.locationId = :locationId', { locationId: selection.locationId })
+          .getOne();
+
+        if (!inventory) {
+          throw new NotFoundException(`Inventory record not found for product ${selection.productId}`);
+        }
+
+        const available = inventory.stock - inventory.reserved;
+        if (available < selection.quantity) {
+          throw new ConflictException(`Stock became unavailable for product ${selection.productId}`);
+        }
+
+        inventory.reserved += selection.quantity;
+        await manager.save(inventory);
+
+        const checkoutItem = manager.create(CheckoutItem, {
+          productId: selection.productId,
+          quantity: selection.quantity,
+          reservedLocationId: selection.locationId,
+        });
+        checkoutItems.push(checkoutItem);
       }
 
-      // 4. Re-evaluate available stock after lock
-      // WHY? Under READ COMMITTED isolation, the inventory row could have been updated
-      // by another transaction between our selectLocationForCheckout call and the lock acquisition.
-      // We must re-verify that the stock is still sufficient.
-      const available = inventory.stock - inventory.reserved;
-      if (available < createCheckoutDto.quantity) {
-        // In a more sophisticated system, we would retry the selection loop here.
-        // For this assignment, failing fast is acceptable and safe.
-        throw new ConflictException('Stock became unavailable due to concurrent checkout');
-      }
-
-      // 5. Reserve Stock
-      inventory.reserved += createCheckoutDto.quantity;
-      await manager.save(inventory);
-
-      // 6. Create Checkout
+      // 5. Create Checkout
       const checkout = manager.create(Checkout, {
-        productId: createCheckoutDto.productId,
-        quantity: createCheckoutDto.quantity,
         deliveryPincode: createCheckoutDto.deliveryPincode,
-        reservedLocationId: locationId,
         status: CheckoutStatus.RESERVED,
         idempotencyKey,
         requestPayloadHash: payloadHash,
+        items: checkoutItems
       });
 
       try {
         return await manager.save(checkout);
       } catch (error) {
-        // Handle potential Unique Constraint Violation on idempotencyKey 
         if (error.code === '23505') {
           throw new ConflictException('Checkout with this idempotency key already exists');
         }
@@ -106,23 +120,30 @@ export class CheckoutsService {
   // Payment Endpoints
   async markPaymentSuccess(checkoutId: string): Promise<Checkout> {
     return this.dataSource.transaction(async (manager) => {
-      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId } });
+      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId }, relations: ['items'] });
       if (!checkout) throw new NotFoundException('Checkout not found');
       if (checkout.status !== CheckoutStatus.RESERVED && checkout.status !== CheckoutStatus.ABANDONED) {
         throw new BadRequestException(`Cannot mark success for checkout in status ${checkout.status}`);
       }
 
-      // Lock inventory to safely decrement stock and reserved
-      const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
-        .setLock('pessimistic_write')
-        .where('inventory.productId = :productId', { productId: checkout.productId })
-        .andWhere('inventory.locationId = :locationId', { locationId: checkout.reservedLocationId })
-        .getOne();
+      // Sort items to prevent deadlocks
+      const sortedItems = [...checkout.items].sort((a, b) => 
+        a.productId.localeCompare(b.productId) || (a.reservedLocationId || '').localeCompare(b.reservedLocationId || '')
+      );
 
-      if (inventory) {
-        inventory.stock -= checkout.quantity;
-        inventory.reserved -= checkout.quantity;
-        await manager.save(inventory);
+      for (const item of sortedItems) {
+        if (!item.reservedLocationId) continue;
+        const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
+          .setLock('pessimistic_write')
+          .where('inventory.productId = :productId', { productId: item.productId })
+          .andWhere('inventory.locationId = :locationId', { locationId: item.reservedLocationId })
+          .getOne();
+
+        if (inventory) {
+          inventory.stock -= item.quantity;
+          inventory.reserved -= item.quantity;
+          await manager.save(inventory);
+        }
       }
 
       checkout.status = CheckoutStatus.SUCCEEDED;
@@ -133,22 +154,29 @@ export class CheckoutsService {
 
   async markPaymentFailed(checkoutId: string): Promise<Checkout> {
     return this.dataSource.transaction(async (manager) => {
-      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId } });
+      const checkout = await manager.findOne(Checkout, { where: { id: checkoutId }, relations: ['items'] });
       if (!checkout) throw new NotFoundException('Checkout not found');
       if (checkout.status !== CheckoutStatus.RESERVED && checkout.status !== CheckoutStatus.ABANDONED) {
         throw new BadRequestException(`Cannot fail checkout in status ${checkout.status}`);
       }
 
-      // Release reserved stock
-      const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
-        .setLock('pessimistic_write')
-        .where('inventory.productId = :productId', { productId: checkout.productId })
-        .andWhere('inventory.locationId = :locationId', { locationId: checkout.reservedLocationId })
-        .getOne();
+      // Sort items to prevent deadlocks
+      const sortedItems = [...checkout.items].sort((a, b) => 
+        a.productId.localeCompare(b.productId) || (a.reservedLocationId || '').localeCompare(b.reservedLocationId || '')
+      );
 
-      if (inventory) {
-        inventory.reserved -= checkout.quantity;
-        await manager.save(inventory);
+      for (const item of sortedItems) {
+        if (!item.reservedLocationId) continue;
+        const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
+          .setLock('pessimistic_write')
+          .where('inventory.productId = :productId', { productId: item.productId })
+          .andWhere('inventory.locationId = :locationId', { locationId: item.reservedLocationId })
+          .getOne();
+
+        if (inventory) {
+          inventory.reserved -= item.quantity;
+          await manager.save(inventory);
+        }
       }
 
       checkout.status = CheckoutStatus.FAILED;
@@ -162,7 +190,7 @@ export class CheckoutsService {
     const deadline = new Date();
     deadline.setMinutes(deadline.getMinutes() + retryWindowMinutes);
 
-    const checkout = await this.checkoutRepository.findOne({ where: { id: checkoutId } });
+    const checkout = await this.checkoutRepository.findOne({ where: { id: checkoutId }, relations: ['items'] });
     if (!checkout) throw new NotFoundException('Checkout not found');
     if (checkout.status !== CheckoutStatus.RESERVED) {
       throw new BadRequestException(`Cannot abandon checkout in status ${checkout.status}`);
@@ -175,8 +203,6 @@ export class CheckoutsService {
 
   async sweepExpiredCheckouts(): Promise<number> {
     let expiredCount = 0;
-    // We fetch all abandoned checkouts past deadline, then process them individually in transactions
-    // to keep locks short and avoid deadlocks.
     const abandonedCheckouts = await this.checkoutRepository.createQueryBuilder('checkout')
       .where('checkout.status = :status', { status: CheckoutStatus.ABANDONED })
       .andWhere('checkout.retryDeadlineAt < :now', { now: new Date() })
@@ -185,22 +211,30 @@ export class CheckoutsService {
     for (const checkout of abandonedCheckouts) {
       try {
         await this.dataSource.transaction(async (manager) => {
-          // Re-fetch with lock to ensure it hasn't been changed concurrently
           const currentCheckout = await manager.createQueryBuilder(Checkout, 'checkout')
             .setLock('pessimistic_write')
+            .leftJoinAndSelect('checkout.items', 'items')
             .where('checkout.id = :id', { id: checkout.id })
             .getOne();
 
           if (currentCheckout && currentCheckout.status === CheckoutStatus.ABANDONED && currentCheckout.retryDeadlineAt && currentCheckout.retryDeadlineAt < new Date()) {
-            const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
-              .setLock('pessimistic_write')
-              .where('inventory.productId = :productId', { productId: currentCheckout.productId })
-              .andWhere('inventory.locationId = :locationId', { locationId: currentCheckout.reservedLocationId })
-              .getOne();
+            
+            const sortedItems = [...(currentCheckout.items || [])].sort((a, b) => 
+              a.productId.localeCompare(b.productId) || (a.reservedLocationId || '').localeCompare(b.reservedLocationId || '')
+            );
 
-            if (inventory) {
-              inventory.reserved -= currentCheckout.quantity;
-              await manager.save(inventory);
+            for (const item of sortedItems) {
+              if (!item.reservedLocationId) continue;
+              const inventory = await manager.createQueryBuilder(Inventory, 'inventory')
+                .setLock('pessimistic_write')
+                .where('inventory.productId = :productId', { productId: item.productId })
+                .andWhere('inventory.locationId = :locationId', { locationId: item.reservedLocationId })
+                .getOne();
+
+              if (inventory) {
+                inventory.reserved -= item.quantity;
+                await manager.save(inventory);
+              }
             }
 
             currentCheckout.status = CheckoutStatus.EXPIRED;

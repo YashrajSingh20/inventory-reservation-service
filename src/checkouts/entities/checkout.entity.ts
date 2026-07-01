@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { CheckoutItem } from './checkout-item.entity';
 
 export enum CheckoutStatus {
   STARTED = 'STARTED',
@@ -14,20 +15,14 @@ export class Checkout {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('uuid')
-  productId: string;
-
-  @Column({ type: 'int' })
-  quantity: number;
+  @OneToMany(() => CheckoutItem, (item) => item.checkout, { cascade: true })
+  items: CheckoutItem[];
 
   @Column()
   deliveryPincode: string;
 
   @Column({ type: 'enum', enum: CheckoutStatus, default: CheckoutStatus.STARTED })
   status: CheckoutStatus;
-
-  @Column('uuid', { nullable: true })
-  reservedLocationId: string | null;
 
   @Column({ unique: true })
   idempotencyKey: string;

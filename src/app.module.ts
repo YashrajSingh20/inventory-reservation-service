@@ -10,6 +10,7 @@ import { Product } from './products/entities/product.entity';
 import { Location } from './locations/entities/location.entity';
 import { Inventory } from './inventory/entities/inventory.entity';
 import { Checkout } from './checkouts/entities/checkout.entity';
+import { CheckoutItem } from './checkouts/entities/checkout-item.entity';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { Checkout } from './checkouts/entities/checkout.entity';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
       ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-      entities: [Product, Location, Inventory, Checkout],
+      entities: [Product, Location, Inventory, Checkout, CheckoutItem],
       synchronize: true, // Auto-create schema for this assignment
     }),
     ProductsModule,
