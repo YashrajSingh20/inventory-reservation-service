@@ -378,9 +378,13 @@
             try {
                 // 1. Create Products
                 log('Seeding products...', 'sys');
+                const skuSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
                 for (let p of products) {
-                    const res = await api('/products', 'POST', { name: p.name, sku: p.sku });
+                    const baseSku = p.sku.split('-')[0]; // Extract base SKU to avoid chained suffixes if seeded multiple times
+                    const uniqueSku = `${baseSku}-${skuSuffix}`;
+                    const res = await api('/products', 'POST', { name: p.name, sku: uniqueSku });
                     p.id = res.id;
+                    p.sku = uniqueSku;
                     log(`Created Product [${p.sku}] -> ${p.id.substring(0,8)}...`);
                 }
 
