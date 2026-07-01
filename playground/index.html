@@ -3,297 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Reservation Playground</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Distributed Checkout System Architecture</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --card-border: rgba(0, 0, 0, 0.08);
-            --text-main: #0f172a;
-            --text-muted: #64748b;
+            --bg-base: #000000;
+            --bg-panel: #0a0a0a;
+            --bg-surface: #171717;
+            --border-subtle: #262626;
+            --border-hover: #404040;
+            --text-main: #ededed;
+            --text-muted: #a1a1aa;
             --accent-primary: #3b82f6;
-            --accent-primary-hover: #2563eb;
+            --accent-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
             --accent-success: #10b981;
-            --accent-success-hover: #059669;
             --accent-danger: #ef4444;
-            --accent-danger-hover: #dc2626;
             --accent-warning: #f59e0b;
-            --accent-warning-hover: #d97706;
         }
 
         body { 
-            font-family: 'Inter', sans-serif; 
-            padding: 40px 20px; 
-            background: var(--bg-color);
-            background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 40%),
-                              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.08), transparent 40%);
+            font-family: 'Outfit', sans-serif; 
+            margin: 0; 
+            background-color: var(--bg-base); 
             color: var(--text-main); 
-            min-height: 100vh;
-            margin: 0;
-            box-sizing: border-box;
-        }
-        .container { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 25px; 
-        }
-        .card { 
-            background: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 16px; 
-            border: 1px solid var(--card-border);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
-            border-color: rgba(0, 0, 0, 0.12);
-        }
-        h1 { 
-            text-align: center; 
-            grid-column: 1 / -1; 
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: -1px;
-            background: linear-gradient(to right, #2563eb, #059669);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-        }
-        h2 { 
-            font-size: 1.25rem; 
-            font-weight: 600;
-            margin-top: 0; 
-            border-bottom: 1px solid var(--card-border); 
-            padding-bottom: 15px; 
-            color: var(--text-main);
-        }
-        label { 
-            display: block; 
-            margin-top: 15px; 
-            font-weight: 600; 
-            font-size: 0.85rem; 
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        input, select { 
-            width: 100%; 
-            padding: 12px; 
-            margin-top: 6px; 
-            box-sizing: border-box; 
-            border: 1px solid var(--card-border); 
-            border-radius: 8px;
-            background: #ffffff;
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-        }
-        input::placeholder { color: #94a3b8; }
-        input[readonly] { background: #f1f5f9; cursor: not-allowed; color: var(--text-muted); }
-        
-        button { 
-            margin-top: 20px; 
-            padding: 12px 20px; 
-            width: 100%; 
-            background: var(--accent-primary); 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 0.95rem;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-        button:hover { 
-            background: var(--accent-primary-hover); 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3);
-        }
-        button:active { transform: translateY(0); }
-        
-        .success { background: var(--accent-success); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
-        .success:hover { background: var(--accent-success-hover); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3); }
-        .danger { background: var(--accent-danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
-        .danger:hover { background: var(--accent-danger-hover); box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3); }
-        .warning { background: var(--accent-warning); color: #fff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); }
-        .warning:hover { background: var(--accent-warning-hover); box-shadow: 0 6px 15px rgba(245, 158, 11, 0.3); }
-        
-        .log-area { 
-            grid-column: 1 / -1; 
-            background: #0f172a; 
-            color: #34d399; 
-            padding: 20px; 
-            border-radius: 12px; 
-            height: 250px; 
-            overflow-y: auto; 
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 0.9rem;
-            border: 1px solid var(--card-border);
-            line-height: 1.5;
-            box-shadow: inset 0 4px 10px rgba(0,0,0,0.3);
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: separate; 
-            border-spacing: 0;
-            margin-top: 15px; 
-            border-radius: 8px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
-            border: 1px solid var(--card-border);
         }
-        th, td { 
-            padding: 12px 15px; 
-            text-align: left; 
-            border-bottom: 1px solid var(--card-border);
+
+        /* Navbar */
+        .navbar {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10,10,10,0.8);
+            backdrop-filter: blur(12px);
+            z-index: 100;
         }
-        th { 
-            background-color: #f8fafc; 
+        .navbar h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .badge { background: #171717; border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 99px; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+
+        /* Main Layout */
+        .layout {
+            display: grid;
+            grid-template-columns: 45% 55%;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Left: Storefront */
+        .storefront {
+            padding: 2rem;
+            border-right: 1px solid var(--border-subtle);
+            overflow-y: auto;
+            background: var(--bg-base);
+        }
+
+        .section-header { font-size: 1.5rem; font-weight: 600; margin-top: 0; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+        .btn {
+            background: var(--bg-surface);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
             font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background-color: #f1f5f9; }
+        .btn:hover { border-color: var(--border-hover); background: #262626; }
+        .btn-primary { background: var(--accent-gradient); border: none; color: #fff; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+        .btn-success { background: var(--accent-success); border: none; color: #fff; }
+        .btn-danger { background: var(--accent-danger); border: none; color: #fff; }
+        .btn-warning { background: var(--accent-warning); border: none; color: #fff; }
+
+        /* Products Grid */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .product-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .product-card:hover { border-color: var(--accent-primary); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .product-icon { font-size: 3rem; margin-bottom: 1rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        .product-name { font-weight: 600; margin-bottom: 0.25rem; font-size: 1.1rem; }
+        .product-sku { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; font-family: 'Fira Code', monospace; }
+
+        /* Cart & Checkout */
+        .cart-panel { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px dashed var(--border-subtle); }
+        .cart-item:last-child { border-bottom: none; }
         
-        hr { border: 0; border-top: 1px solid var(--card-border); margin: 25px 0; }
+        .input-group { margin-top: 1rem; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;}
+        .input-group input { width: 100%; padding: 0.75rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-main); font-family: 'Outfit', sans-serif; box-sizing: border-box; }
+        .input-group input:focus { outline: none; border-color: var(--accent-primary); }
+        .input-group input[readonly] { color: var(--text-muted); cursor: not-allowed; }
+
+        /* Right: Control Room */
+        .control-room {
+            padding: 2rem;
+            background: var(--bg-panel);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Tooltip Card */
+        .info-card {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .info-card.warning { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); }
+        .info-card.success { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+        .info-icon { font-size: 1.5rem; }
+        .info-content h4 { margin: 0 0 0.25rem 0; font-size: 0.95rem; color: #fff; }
+        .info-content p { margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+
+        /* Tables */
+        .table-container { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; background: var(--bg-surface); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+        th { background: #111; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+        tr:last-child td { border-bottom: none; }
+        
+        .stock-good { color: var(--accent-success); font-weight: 600; }
+        .stock-low { color: var(--accent-warning); font-weight: 600; }
+        .stock-out { color: var(--accent-danger); font-weight: 600; }
+
+        /* Terminal Logs */
+        .terminal {
+            background: #000;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: #d1d5db;
+            height: 250px;
+            overflow-y: auto;
+            line-height: 1.6;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .terminal-time { color: #64748b; margin-right: 8px; }
+        .terminal-sys { color: #3b82f6; }
+        .terminal-success { color: #10b981; }
+        .terminal-err { color: #ef4444; }
+
+        /* Setup Overlay */
+        #setupOverlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 1000; flex-direction: column;
+        }
+        .setup-box { background: var(--bg-panel); padding: 3rem; border-radius: 16px; border: 1px solid var(--border-subtle); text-align: center; max-width: 400px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--border-subtle); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5rem auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Inventory Reservation Playground</h1>
 
-        <!-- Setup Data -->
-        <div class="card">
-            <h2>1. Setup Data</h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Simulate your database state by creating products, warehouses, and initial physical stock.</p>
-            
-            <label>Product ID</label>
-            <input type="text" id="productId" placeholder="Product UUID (leave blank to create)" />
-            <button onclick="createProduct()">Create Random Product</button>
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
-            
-            <label>Location ID</label>
-            <input type="text" id="locationId" placeholder="Location UUID (leave blank to create)" />
-            <label>Service Pincode</label>
-            <input type="text" id="servicePincodes" value="10001, 10002" />
-            <button onclick="createLocation()">Create Location</button>
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
-
-            <label>Stock to Add</label>
-            <input type="number" id="stockToAdd" value="10" />
-            <button onclick="addInventory()">Add Inventory</button>
+    <!-- Initial Setup Overlay -->
+    <div id="setupOverlay">
+        <div class="setup-box">
+            <h2 style="margin-top: 0;">Welcome to the Demo</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 2rem;">
+                This playground visualizes a distributed inventory reservation system. 
+                Before we begin, we need to seed the database with mock warehouses and products.
+            </p>
+            <button class="btn btn-primary" style="width: 100%; padding: 1rem;" onclick="seedData()" id="seedBtn">Seed Demo Data</button>
+            <div id="seedLoader" class="hidden">
+                <div class="spinner"></div>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Initializing databases...</p>
+            </div>
         </div>
+    </div>
 
-        <!-- Checkout -->
-        <div class="card">
-            <h2>2. Shopping Cart & Checkout</h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Add multiple products to your cart, then reserve stock for all items atomically.</p>
-            
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed var(--card-border); margin-bottom: 15px;">
-                <label style="margin-top: 0;">Product ID to Add</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="cartProductId" placeholder="Paste Product UUID" style="flex: 1;" />
-                    <button onclick="copyCurrentProduct()" style="background: #e2e8f0; color: #475569; width: auto; padding: 12px; margin-top: 6px; box-shadow: none;" title="Use the Product ID from Step 1">📋 Use Step 1 ID</button>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <h1>Distributed Inventory System</h1>
+        <div class="badge">Live Architecture Demo</div>
+    </nav>
+
+    <div class="layout">
+        <!-- Storefront (Left) -->
+        <div class="storefront">
+            <div class="section-header">
+                <span>E-Commerce Storefront</span>
+            </div>
+
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 2rem;">
+                Browse the catalog. Add multiple items to your cart to test atomic batch reservations.
+            </p>
+
+            <div class="product-grid" id="productGrid">
+                <!-- Populated via JS -->
+            </div>
+
+            <div class="cart-panel">
+                <h3 style="margin-top: 0; margin-bottom: 1rem;">Shopping Cart</h3>
+                <div id="cartItems">
+                    <div class="cart-item" style="color: var(--text-muted); justify-content: center;">Cart is empty</div>
                 </div>
-                <label>Quantity</label>
-                <input type="number" id="cartQty" value="1" />
-                <button onclick="addToCart()" style="background: var(--accent-primary); margin-top: 15px;">Add to Cart</button>
-            </div>
-
-            <label>Your Cart</label>
-            <ul id="cartList" style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: 5px; min-height: 30px;">
-                <li style="color: var(--text-muted)">Cart is empty</li>
-            </ul>
-
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
-            <label>Delivery Pincode</label>
-            <input type="text" id="checkoutPincode" value="10001" />
-            <label>Idempotency Key</label>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 8px 0;">Demonstrates API resilience. Prevents duplicate checkouts if the network fails during a request.</p>
-            <input type="text" id="idempotencyKey" placeholder="Generate a unique key" />
-            <button onclick="generateIdempotencyKey()" style="background: #6c757d; margin-top: 5px;">Generate Random Key</button>
-            <button onclick="startCheckout()" class="success">Start Checkout (Reserve Cart)</button>
-
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;" />
-            <label>Active Checkout ID</label>
-            <input type="text" id="checkoutId" readonly />
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button onclick="markPayment('success')" class="success">Payment Success</button>
-                <button onclick="markPayment('failed')" class="danger">Payment Failed</button>
-                <button onclick="markPayment('abandoned')" class="warning">Abandon Checkout</button>
+                
+                <div class="input-group" style="margin-top: 1.5rem;">
+                    <label>Delivery Pincode (Routing)</label>
+                    <input type="text" id="checkoutPincode" value="10001" />
+                </div>
+                
+                <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1rem;" onclick="startCheckout()">Proceed to Checkout (Reserve)</button>
             </div>
             
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 20px 0 5px 0;">Simulates a background cron job that releases reserved stock for abandoned checkouts after 15 mins.</p>
-            <button onclick="sweepExpired()" style="background: #17a2b8; margin-top: 0px;">Sweep Expired Checkouts (Cron Job)</button>
-        </div>
-
-        <!-- Availability Dashboard -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>3. Product Availability Dashboard</h2>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px; margin-bottom: 15px;">Monitor real-time Physical Stock vs Reserved Stock to ensure we never oversell inventory.</p>
-            
-            <label>Check Availability for Product ID:</label>
-            <div style="display: flex; gap: 10px; align-items: flex-end;">
-                <input type="text" id="dashProductId" placeholder="Paste Product UUID" style="flex: 1;" />
-                <button onclick="fetchAvailability()" style="width: auto; margin: 0; padding: 12px 20px;">Refresh</button>
-            </div>
-
-            <table id="availabilityTable">
-                <thead>
-                    <tr>
-                        <th>Location ID</th>
-                        <th>Location Name</th>
-                        <th>Physical Stock</th>
-                        <th>Reserved</th>
-                        <th>Available</th>
-                    </tr>
-                </thead>
-                <tbody id="availabilityBody">
-                    <tr><td colspan="5">No data. Enter a Product ID and click refresh.</td></tr>
-                </tbody>
-            </table>
-            <div style="margin-top: 10px;">
-                <strong>Total Available Stock Across Network: </strong> <span id="totalAvailable">0</span>
+            <div class="cart-panel hidden" id="paymentPanel" style="border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.05);">
+                <h3 style="margin-top: 0; color: #fff;">Simulate Payment Gateway</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">The stock is currently <strong>RESERVED</strong> (locked). Finalize the payment state to permanently deduct or release it.</p>
+                
+                <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-success" style="flex: 1;" onclick="markPayment('success')">Success</button>
+                    <button class="btn btn-danger" style="flex: 1;" onclick="markPayment('failed')">Failed</button>
+                </div>
+                <button class="btn" style="width: 100%; margin-top: 10px;" onclick="markPayment('abandoned')">Abandon (Let Cron Sweep)</button>
             </div>
         </div>
 
-        <!-- Logs -->
-        <div class="log-area" id="logs">
-            [System Ready] Welcome to the playground! Start by creating a product and location.
+        <!-- Control Room (Right) -->
+        <div class="control-room">
+            <div class="section-header">
+                <span>Backend Control Room</span>
+            </div>
+
+            <!-- Architecture Info Cards -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="info-card">
+                    <div class="info-icon">🔄</div>
+                    <div class="info-content">
+                        <h4>Idempotent API Requests</h4>
+                        <p>The frontend generates a unique Idempotency Key for every checkout attempt. This ensures that if a network timeout occurs and the client retries, the backend won't double-charge or reserve stock twice.</p>
+                        <div class="input-group">
+                            <input type="text" id="idempotencyKey" readonly />
+                        </div>
+                    </div>
+                </div>
+                <div class="info-card warning">
+                    <div class="info-icon">🔒</div>
+                    <div class="info-content">
+                        <h4>Deadlock Prevention (Pessimistic Locking)</h4>
+                        <p>When checking out multiple items, the backend sorts all requested products alphabetically by ID before acquiring Row-Level Postgres Locks. This strict ordering prevents database deadlocks when concurrent users checkout intersecting carts.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div>
+                <div class="flex-between" style="margin-bottom: 0.5rem;">
+                    <h3 style="margin: 0;">Global Inventory Dashboard</h3>
+                    <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="refreshDashboard()">Refresh Sync</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Warehouse (Pincodes)</th>
+                                <th>Physical</th>
+                                <th>Reserved</th>
+                                <th>Avail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardBody">
+                            <tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No data.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 10px; text-align: right;">
+                    <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: #171717; border-color: #262626;" onclick="sweepExpired()">Trigger Expiry Cron Sweep</button>
+                </div>
+            </div>
+
+            <!-- Terminal -->
+            <div>
+                <h3 style="margin-top: 0; margin-bottom: 0.5rem;">System Logs</h3>
+                <div class="terminal" id="terminal">
+                    <div><span class="terminal-time">[SYS]</span> System initialized. Waiting for commands...</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const API_URL = 'https://inventory-reservation-service.onrender.com';
-        let cart = [];
+        
+        let products = [
+            { id: null, name: 'MacBook Pro M3', icon: '💻', sku: 'MBP-M3' },
+            { id: null, name: 'iPhone 15 Pro', icon: '📱', sku: 'IP15-P' },
+            { id: null, name: 'AirPods Max', icon: '🎧', sku: 'AP-MAX' }
+        ];
+        let locations = [
+            { id: null, name: 'New York Hub', city: 'New York', state: 'NY', pincodes: ['10001', '10002'] },
+            { id: null, name: 'Los Angeles Hub', city: 'Los Angeles', state: 'CA', pincodes: ['90001', '90002'] }
+        ];
 
-        const log = (msg) => {
-            const logs = document.getElementById('logs');
-            logs.innerHTML += `\n[${new Date().toISOString().split('T')[1].split('.')[0]}] ${msg}`;
-            logs.scrollTop = logs.scrollHeight;
+        let cart = [];
+        let activeCheckoutId = null;
+
+        const terminal = document.getElementById('terminal');
+        const log = (msg, type = 'sys') => {
+            const time = new Date().toISOString().split('T')[1].split('.')[0];
+            let colorClass = 'terminal-sys';
+            if(type === 'success') colorClass = 'terminal-success';
+            if(type === 'err') colorClass = 'terminal-err';
+            if(type === 'warn') colorClass = 'terminal-warn';
+            
+            terminal.innerHTML += `<div><span class="terminal-time">[${time}]</span> <span class="${colorClass}">${msg}</span></div>`;
+            terminal.scrollTop = terminal.scrollHeight;
         };
 
-        generateIdempotencyKey();
-
         function generateIdempotencyKey() {
-            document.getElementById('idempotencyKey').value = 'key-' + Math.random().toString(36).substr(2, 9);
+            const key = 'req_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+            document.getElementById('idempotencyKey').value = key;
+            return key;
         }
 
         async function api(path, method = 'GET', body = null, headers = {}) {
@@ -305,126 +352,204 @@
                 if (!res.ok) throw new Error(data.message || JSON.stringify(data));
                 return data;
             } catch (err) {
-                log(`ERROR: ${err.message}`);
+                log(`API ERROR: ${err.message}`, 'err');
                 throw err;
             }
         }
 
-        async function createProduct() {
-            const sku = 'SKU-' + Math.floor(Math.random() * 10000);
-            const data = await api('/products', 'POST', { name: 'Demo Product', sku });
-            document.getElementById('productId').value = data.id;
-            document.getElementById('dashProductId').value = data.id;
-            log(`Created Product: ${data.id}`);
-            fetchAvailability();
+        // --- Data Seeding ---
+        async function seedData() {
+            document.getElementById('seedBtn').classList.add('hidden');
+            document.getElementById('seedLoader').classList.remove('hidden');
+
+            try {
+                // 1. Create Products
+                log('Seeding products...', 'sys');
+                for (let p of products) {
+                    const res = await api('/products', 'POST', { name: p.name, sku: p.sku });
+                    p.id = res.id;
+                    log(`Created Product [${p.sku}] -> ${p.id.substring(0,8)}...`);
+                }
+
+                // 2. Create Locations
+                log('Seeding warehouses...', 'sys');
+                for (let l of locations) {
+                    const res = await api('/locations', 'POST', { 
+                        name: l.name, city: l.city, state: l.state, 
+                        servicePincodes: l.pincodes, priority: 1 
+                    });
+                    l.id = res.id;
+                    log(`Created Warehouse [${l.name}] -> ${l.id.substring(0,8)}...`);
+                }
+
+                // 3. Add Inventory (50 items of each product in each warehouse)
+                log('Allocating physical stock...', 'sys');
+                for (let p of products) {
+                    for (let l of locations) {
+                        await api('/inventory', 'POST', { productId: p.id, locationId: l.id, stock: 50 });
+                    }
+                }
+
+                log('Data seeding complete!', 'success');
+                document.getElementById('setupOverlay').classList.add('hidden');
+                
+                renderProducts();
+                generateIdempotencyKey();
+                refreshDashboard();
+
+            } catch (error) {
+                alert('Seeding failed! Check terminal logs.');
+                document.getElementById('seedBtn').classList.remove('hidden');
+                document.getElementById('seedLoader').classList.add('hidden');
+            }
         }
 
-        async function createLocation() {
-            const pincodes = document.getElementById('servicePincodes').value.split(',').map(s => s.trim());
-            const data = await api('/locations', 'POST', { 
-                name: 'Warehouse ' + Math.floor(Math.random() * 100), 
-                city: 'New York', state: 'NY', 
-                servicePincodes: pincodes, priority: 1 
-            });
-            document.getElementById('locationId').value = data.id;
-            log(`Created Location: ${data.id}`);
+        // --- UI Rendering ---
+        function renderProducts() {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = products.map(p => `
+                <div class="product-card">
+                    <div class="product-icon">${p.icon}</div>
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-sku">SKU: ${p.sku}</div>
+                    <button class="btn" onclick="addToCart('${p.id}')">Add to Cart</button>
+                </div>
+            `).join('');
         }
 
-        async function addInventory() {
-            const productId = document.getElementById('productId').value;
-            const locationId = document.getElementById('locationId').value;
-            const stock = parseInt(document.getElementById('stockToAdd').value, 10);
-            if(!productId || !locationId) return log('ERROR: Product ID and Location ID required');
-            await api('/inventory', 'POST', { productId, locationId, stock });
-            log(`Added ${stock} inventory to location ${locationId}`);
-            fetchAvailability();
-        }
-
-        // Cart Logic
-        function copyCurrentProduct() {
-            const pid = document.getElementById('productId').value;
-            if (pid) document.getElementById('cartProductId').value = pid;
-        }
-
-        function addToCart() {
-            const productId = document.getElementById('cartProductId').value;
-            const quantity = parseInt(document.getElementById('cartQty').value, 10);
-            if (!productId) return log('ERROR: Product ID required for cart');
-            cart.push({ productId, quantity });
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existing = cart.find(c => c.productId === productId);
+            if(existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({ productId, quantity: 1, product });
+            }
+            log(`Added 1x ${product.name} to cart.`, 'sys');
             renderCart();
-            log(`Added ${quantity} of product ${productId} to cart`);
         }
 
-        function removeFromCart(index) {
-            cart.splice(index, 1);
+        function removeFromCart(productId) {
+            cart = cart.filter(c => c.productId !== productId);
             renderCart();
         }
 
         function renderCart() {
-            const list = document.getElementById('cartList');
-            if (cart.length === 0) {
-                list.innerHTML = '<li style="color: var(--text-muted)">Cart is empty</li>';
+            const container = document.getElementById('cartItems');
+            if(cart.length === 0) {
+                container.innerHTML = '<div class="cart-item" style="color: var(--text-muted); justify-content: center;">Cart is empty</div>';
                 return;
             }
-            list.innerHTML = cart.map((item, index) => 
-                `<li style="padding: 10px; background: #fff; border: 1px solid var(--card-border); margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-                    <span><span style="font-weight: 600; color: var(--accent-primary);">${item.quantity}x</span> Product: ${item.productId.substring(0,8)}...</span>
-                    <button onclick="removeFromCart(${index})" style="background: transparent; color: var(--accent-danger); font-size: 1.2rem; font-weight: bold; padding: 0 5px; width: auto; margin: 0; box-shadow: none;">&times;</button>
-                </li>`
-            ).join('');
+
+            container.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <span>
+                        <span style="color: var(--accent-primary); font-weight: 600; margin-right: 8px;">${item.quantity}x</span>
+                        ${item.product.name}
+                    </span>
+                    <button class="btn" style="padding: 0.2rem 0.5rem; background: transparent; border: none; color: var(--accent-danger);" onclick="removeFromCart('${item.productId}')">&times;</button>
+                </div>
+            `).join('');
         }
 
+        // --- Checkout Flow ---
         async function startCheckout() {
-            if(cart.length === 0) return log('ERROR: Cart is empty. Add items first.');
-            const deliveryPincode = document.getElementById('checkoutPincode').value;
+            if(cart.length === 0) return alert('Cart is empty!');
+            
+            const pincode = document.getElementById('checkoutPincode').value;
             const idempotencyKey = document.getElementById('idempotencyKey').value;
 
-            log('Starting multi-item checkout...');
-            const data = await api('/checkouts', 'POST', { items: cart, deliveryPincode }, { 'idempotency-key': idempotencyKey });
-            document.getElementById('checkoutId').value = data.id;
-            
-            log(`Checkout Success: ID=${data.id}, Status=${data.status}, Items=${data.items.length}`);
-            cart = []; // clear cart after successful reserve
-            renderCart();
-            fetchAvailability();
+            const payloadItems = cart.map(c => ({ productId: c.productId, quantity: c.quantity }));
+
+            log(`Initiating Checkout... Pincode: ${pincode}`, 'warn');
+            log(`Request Payload: ${JSON.stringify(payloadItems)}`, 'sys');
+
+            try {
+                const res = await api('/checkouts', 'POST', { items: payloadItems, deliveryPincode: pincode }, { 'idempotency-key': idempotencyKey });
+                
+                activeCheckoutId = res.id;
+                log(`Reservation Successful! Lock Acquired & Released.`, 'success');
+                log(`Checkout ID: ${res.id}`, 'sys');
+                
+                res.items.forEach(item => {
+                    const p = products.find(p => p.id === item.productId);
+                    const l = locations.find(l => l.id === item.reservedLocationId);
+                    log(`-> Reserved ${item.quantity}x ${p?.name} from ${l?.name}`, 'success');
+                });
+
+                cart = []; // Empty cart
+                renderCart();
+                generateIdempotencyKey(); // Regen key for next time
+                refreshDashboard();
+
+                // Show payment UI
+                document.getElementById('paymentPanel').classList.remove('hidden');
+
+            } catch(e) {
+                log(`Checkout Failed: ${e.message}`, 'err');
+                // Even on failure, regenerate idempotency key since the client saw the error.
+                generateIdempotencyKey();
+            }
         }
 
         async function markPayment(status) {
-            const id = document.getElementById('checkoutId').value;
-            if(!id) return log('ERROR: No active checkout ID');
-            await api(`/checkouts/${id}/payment/${status}`, 'POST');
-            log(`Checkout ${id} marked as ${status.toUpperCase()}`);
-            fetchAvailability();
+            if(!activeCheckoutId) return;
+            log(`Processing Payment: ${status.toUpperCase()}...`, 'warn');
+            try {
+                await api(`/checkouts/${activeCheckoutId}/payment/${status}`, 'POST');
+                log(`Payment State Finalized -> ${status.toUpperCase()}`, status === 'success' ? 'success' : 'err');
+                
+                document.getElementById('paymentPanel').classList.add('hidden');
+                activeCheckoutId = null;
+                refreshDashboard();
+            } catch(e) {
+                log(`Payment update failed: ${e.message}`, 'err');
+            }
         }
 
         async function sweepExpired() {
-            const data = await api('/checkouts/expire', 'POST');
-            log(`Sweep Complete: ${data.message}`);
-            fetchAvailability();
+            log('Triggering Cron Job: Sweeping expired checkouts...', 'warn');
+            const res = await api('/checkouts/expire', 'POST');
+            log(`Cron Response: ${res.message}`, 'sys');
+            refreshDashboard();
         }
 
-        async function fetchAvailability() {
-            const productId = document.getElementById('dashProductId').value;
-            if(!productId) return;
-            const data = await api(`/products/${productId}/availability`);
-            document.getElementById('totalAvailable').innerText = data.totalAvailable;
+        // --- Dashboard Sync ---
+        async function refreshDashboard() {
+            const tbody = document.getElementById('dashboardBody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Syncing...</td></tr>';
             
-            const tbody = document.getElementById('availabilityBody');
-            tbody.innerHTML = '';
-            if (data.locations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No inventory found for this product.</td></tr>';
-                return;
+            let allHtml = '';
+
+            for (let p of products) {
+                if(!p.id) continue;
+                try {
+                    const data = await api(`/products/${p.id}/availability`);
+                    if(data.locations.length === 0) continue;
+                    
+                    data.locations.forEach((loc, index) => {
+                        const isFirst = index === 0;
+                        const availClass = loc.available > 10 ? 'stock-good' : (loc.available > 0 ? 'stock-low' : 'stock-out');
+                        
+                        allHtml += `
+                            <tr>
+                                <td>${isFirst ? `<strong>${p.name}</strong><br><span class="text-xs">${p.sku}</span>` : ''}</td>
+                                <td>${loc.locationName}</td>
+                                <td>${loc.stock}</td>
+                                <td style="color: var(--accent-warning);">${loc.reserved}</td>
+                                <td class="${availClass}">${loc.available}</td>
+                            </tr>
+                        `;
+                    });
+                } catch(e) {
+                    console.error("Dashboard fetch error for", p.name);
+                }
             }
-            data.locations.forEach(loc => {
-                tbody.innerHTML += `<tr>
-                    <td>${loc.locationId}</td>
-                    <td>${loc.locationName}</td>
-                    <td>${loc.stock}</td>
-                    <td>${loc.reserved}</td>
-                    <td style="font-weight:bold; color: ${loc.available > 0 ? 'green' : 'red'}">${loc.available}</td>
-                </tr>`;
-            });
+
+            if(allHtml === '') allHtml = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No inventory found.</td></tr>';
+            tbody.innerHTML = allHtml;
         }
+
     </script>
 </body>
 </html>
